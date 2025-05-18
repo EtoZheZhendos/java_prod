@@ -1,0 +1,245 @@
+.main-container {
+  -fx-background-color: #f5f5f5;
+}
+
+.title-label {
+  -fx-font-size: 24px;
+  -fx-font-weight: bold;
+  -fx-text-fill: #ffffff;
+}
+
+.summary-box {
+  -fx-padding: 15px;
+  -fx-background-color: #3c3f41;
+  -fx-background-radius: 5px;
+  -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.3), 10, 0, 0, 3);
+  -fx-min-width: 200px;
+  -fx-border-color: #555555;
+  -fx-border-radius: 5px;
+}
+
+.summary-box .label:first-child {
+  -fx-font-size: 14px;
+  -fx-text-fill: #cccccc;
+}
+
+.amount-label {
+  -fx-font-size: 20px;
+  -fx-font-weight: bold;
+  -fx-text-fill: #ffffff;
+}
+
+.table-view {
+  -fx-background-color: transparent;
+}
+
+.table-view .column-header {
+  -fx-background-color: #3c3f41;
+  -fx-border-color: #555555;
+}
+
+.table-view .column-header .label {
+  -fx-text-fill: #ffffff;
+  -fx-font-weight: bold;
+}
+
+.table-row-cell {
+  -fx-background-color: #2b2b2b;
+  -fx-text-fill: #ffffff;
+  -fx-border-color: transparent transparent #555555 transparent;
+}
+
+.table-row-cell .text {
+  -fx-fill: #ffffff;
+}
+
+.table-row-cell:odd {
+  -fx-background-color: #323232;
+}
+
+.table-row-cell:selected {
+  -fx-background-color: #4c5052;
+}
+
+.button {
+  -fx-background-color: #007bff;
+  -fx-text-fill: white;
+  -fx-padding: 8px 16px;
+  -fx-background-radius: 4px;
+}
+
+.button:hover {
+  -fx-background-color: #0056b3;
+}
+
+.text-field,
+.combo-box,
+.date-picker {
+  -fx-padding: 8px;
+  -fx-background-color: white;
+  -fx-border-color: #ced4da;
+  -fx-border-radius: 4px;
+}
+
+.text-field:focused,
+.combo-box:focused,
+.date-picker:focused {
+  -fx-border-color: #80bdff;
+  -fx-effect: dropshadow(gaussian, rgba(0, 123, 255, 0.25), 0, 0, 0, 0);
+}
+
+.pie-chart {
+  -fx-background-color: #3c3f41;
+  -fx-border-color: #555555;
+  -fx-border-radius: 5px;
+  -fx-padding: 10px;
+}
+
+.root {
+  -fx-background-color: #2b2b2b;
+  -fx-text-fill: #ffffff;
+}
+
+.label {
+  -fx-text-fill: #ffffff;
+}
+
+.button {
+  -fx-background-color: #3c3f41;
+  -fx-text-fill: #ffffff;
+  -fx-border-color: #555555;
+  -fx-border-radius: 3;
+}
+
+.button:hover {
+  -fx-background-color: #4c5052;
+}
+
+.text-field {
+  -fx-background-color: #3c3f41;
+  -fx-text-fill: #ffffff;
+  -fx-border-color: #555555;
+  -fx-prompt-text-fill: #999999;
+}
+
+.combo-box {
+  -fx-background-color: #3c3f41;
+  -fx-border-color: #555555;
+}
+
+.combo-box .cell {
+  -fx-text-fill: #ffffff;
+  -fx-background-color: #3c3f41;
+}
+
+.combo-box-popup .list-view {
+  -fx-background-color: #3c3f41;
+}
+
+.combo-box-popup .list-cell {
+  -fx-text-fill: #ffffff;
+  -fx-background-color: #3c3f41;
+}
+
+.combo-box-popup .list-cell:hover {
+  -fx-background-color: #4c5052;
+}
+
+.table-view {
+  -fx-background-color: #2b2b2b;
+}
+
+.table-view .column-header {
+  -fx-background-color: #3c3f41;
+}
+
+.table-view .column-header .label {
+  -fx-text-fill: #ffffff;
+}
+
+.table-row-cell {
+  -fx-background-color: #2b2b2b;
+  -fx-text-fill: #ffffff;
+}
+
+.table-row-cell:odd {
+  -fx-background-color: #323232;
+}
+
+.table-row-cell:selected {
+  -fx-background-color: #4c5052;
+}
+
+.pie-chart {
+  -fx-background-color: #2b2b2b;
+}
+
+.chart-pie-label {
+  -fx-fill: #ffffff;
+}
+
+.date-picker {
+  -fx-background-color: #3c3f41;
+}
+
+.date-picker .arrow-button {
+  -fx-background-color: #3c3f41;
+  -fx-border-color: #555555;
+}
+
+.date-picker .cell {
+  -fx-background-color: #3c3f41;
+  -fx-text-fill: #ffffff;
+}
+
+.date-picker .cell:hover {
+  -fx-background-color: #4c5052;
+}
+
+.date-picker .selected {
+  -fx-background-color: #4c5052;
+  -fx-text-fill: #ffffff;
+}
+
+.date-picker .text-field {
+  -fx-text-fill: #ffffff;
+}
+
+.date-picker-popup {
+  -fx-background-color: #3c3f41;
+}
+
+.date-picker-popup .month-year-pane {
+  -fx-background-color: #2b2b2b;
+}
+
+.date-picker-popup .spinner .button {
+  -fx-background-color: #3c3f41;
+}
+
+.date-picker-popup .calendar-grid {
+  -fx-background-color: #2b2b2b;
+}
+
+.pie-chart {
+  -fx-background-color: #3c3f41;
+  -fx-border-color: #555555;
+  -fx-border-radius: 5px;
+  -fx-padding: 10px;
+}
+
+.chart-pie {
+  -fx-border-color: #2b2b2b;
+}
+
+.chart-pie-label {
+  -fx-fill: #ffffff;
+}
+
+.chart-legend {
+  -fx-background-color: transparent;
+}
+
+.chart-legend-item {
+  -fx-text-fill: #ffffff;
+}
