@@ -2,12 +2,11 @@ package com.studentbudget.dao.impl;
 
 import com.studentbudget.dao.TransactionDao;
 import com.studentbudget.model.Transaction;
-import com.studentbudget.model.TransactionType;
 import com.studentbudget.model.Category;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.TypedQuery;
+import com.studentbudget.model.TransactionType;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
+import org.hibernate.query.Query;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -19,79 +18,76 @@ public class HibernateTransactionDao implements TransactionDao {
         this.sessionFactory = sessionFactory;
     }
 
-    private Session getSession() {
+    private Session getCurrentSession() {
         return sessionFactory.getCurrentSession();
     }
 
     @Override
-    public Transaction save(Transaction entity) {
-        getSession().persist(entity);
-        return entity;
+    public Transaction save(Transaction transaction) {
+        getCurrentSession().persist(transaction);
+        return transaction;
     }
 
     @Override
-    public Optional<Transaction> findById(Long id) {
-        return Optional.ofNullable(getSession().get(Transaction.class, id));
-    }
-
-    @Override
-    public List<Transaction> findAll() {
-        return getSession().createQuery("from Transaction", Transaction.class).list();
-    }
-
-    @Override
-    public void delete(Transaction entity) {
-        getSession().remove(entity);
+    public Transaction update(Transaction transaction) {
+        return getCurrentSession().merge(transaction);
     }
 
     @Override
     public void deleteById(Long id) {
-        findById(id).ifPresent(this::delete);
+        Query query = getCurrentSession().createQuery("delete from Transaction where id = :id");
+        query.setParameter("id", id);
+        query.executeUpdate();
     }
 
     @Override
-    public Transaction update(Transaction entity) {
-        return getSession().merge(entity);
+    public Optional<Transaction> findById(Long id) {
+        return Optional.ofNullable(getCurrentSession().get(Transaction.class, id));
+    }
+
+    @Override
+    public List<Transaction> findAll() {
+        return getCurrentSession().createQuery("from Transaction", Transaction.class).list();
     }
 
     @Override
     public List<Transaction> findByType(TransactionType type) {
-        TypedQuery<Transaction> query = getSession().createQuery(
-            "from Transaction t where t.type = :type", Transaction.class);
+        Query<Transaction> query = getCurrentSession().createQuery(
+            "from Transaction where type = :type", Transaction.class);
         query.setParameter("type", type);
-        return query.getResultList();
+        return query.list();
     }
 
     @Override
     public List<Transaction> findByCategory(Category category) {
-        TypedQuery<Transaction> query = getSession().createQuery(
-            "from Transaction t where t.category = :category", Transaction.class);
+        Query<Transaction> query = getCurrentSession().createQuery(
+            "from Transaction where category = :category", Transaction.class);
         query.setParameter("category", category);
-        return query.getResultList();
+        return query.list();
     }
 
     @Override
     public List<Transaction> findByDateRange(LocalDateTime start, LocalDateTime end) {
-        TypedQuery<Transaction> query = getSession().createQuery(
-            "from Transaction t where t.date between :start and :end", Transaction.class);
+        Query<Transaction> query = getCurrentSession().createQuery(
+            "from Transaction where date between :start and :end", Transaction.class);
         query.setParameter("start", start);
         query.setParameter("end", end);
-        return query.getResultList();
-    }
-
-    @Override
-    public List<Transaction> findByStatus(String status) {
-        TypedQuery<Transaction> query = getSession().createQuery(
-            "from Transaction t where t.status = :status", Transaction.class);
-        query.setParameter("status", status);
-        return query.getResultList();
+        return query.list();
     }
 
     @Override
     public List<Transaction> searchByDescription(String searchTerm) {
-        TypedQuery<Transaction> query = getSession().createQuery(
-            "from Transaction t where lower(t.description) like lower(:searchTerm)", Transaction.class);
+        Query<Transaction> query = getCurrentSession().createQuery(
+            "from Transaction where lower(description) like lower(:searchTerm)", Transaction.class);
         query.setParameter("searchTerm", "%" + searchTerm + "%");
-        return query.getResultList();
+        return query.list();
+    }
+
+    @Override
+    public List<Transaction> findByStatus(String status) {
+        Query<Transaction> query = getCurrentSession().createQuery(
+            "from Transaction where status = :status", Transaction.class);
+        query.setParameter("status", status);
+        return query.list();
     }
 } 

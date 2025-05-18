@@ -78,7 +78,6 @@ public class RestApiTransactionDao implements TransactionDao {
         }
     }
 
-    @Override
     public void delete(Transaction entity) {
         deleteById(entity.getId());
     }

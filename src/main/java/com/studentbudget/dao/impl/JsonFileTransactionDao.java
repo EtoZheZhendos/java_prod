@@ -70,7 +70,6 @@ public class JsonFileTransactionDao implements TransactionDao {
         return new ArrayList<>(transactions);
     }
 
-    @Override
     public void delete(Transaction entity) {
         transactions.removeIf(t -> t.getId().equals(entity.getId()));
         saveTransactions();

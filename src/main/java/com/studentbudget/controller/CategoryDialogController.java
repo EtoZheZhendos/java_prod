@@ -4,7 +4,9 @@ import com.studentbudget.config.AppConfig;
 import com.studentbudget.model.Category;
 import com.studentbudget.service.CategoryService;
 import javafx.fxml.FXML;
+import javafx.scene.control.Alert;
 import javafx.scene.control.TextField;
+import javafx.scene.control.TextArea;
 import javafx.stage.Stage;
 
 public class CategoryDialogController {
@@ -12,7 +14,7 @@ public class CategoryDialogController {
     private TextField nameField;
     
     @FXML
-    private TextField descriptionField;
+    private TextArea descriptionField;
 
     private Stage dialogStage;
     private Category category;
@@ -50,21 +52,23 @@ public class CategoryDialogController {
             if (category == null) {
                 category = new Category();
             }
-            
             category.setName(nameField.getText());
             category.setDescription(descriptionField.getText());
-
+            
             try {
                 if (category.getId() == null) {
-                    categoryService.addCategory(category);
+                    categoryService.createCategory(category);
                 } else {
                     categoryService.updateCategory(category);
                 }
                 okClicked = true;
                 dialogStage.close();
-            } catch (Exception e) {
-                // Handle error
-                e.printStackTrace();
+            } catch (IllegalArgumentException e) {
+                Alert alert = new Alert(Alert.AlertType.ERROR);
+                alert.setTitle("Ошибка");
+                alert.setHeaderText("Ошибка при сохранении категории");
+                alert.setContentText(e.getMessage());
+                alert.showAndWait();
             }
         }
     }
@@ -77,14 +81,18 @@ public class CategoryDialogController {
     private boolean isInputValid() {
         String errorMessage = "";
 
-        if (nameField.getText() == null || nameField.getText().length() == 0) {
-            errorMessage += "Category name is required!\n";
+        if (nameField.getText() == null || nameField.getText().trim().isEmpty()) {
+            errorMessage += "Название категории обязательно!\n";
         }
 
-        if (errorMessage.length() == 0) {
+        if (errorMessage.isEmpty()) {
             return true;
         } else {
-            // Show error message
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Ошибка");
+            alert.setHeaderText("Пожалуйста, исправьте неверные поля");
+            alert.setContentText(errorMessage);
+            alert.showAndWait();
             return false;
         }
     }

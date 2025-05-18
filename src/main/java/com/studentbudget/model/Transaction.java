@@ -98,4 +98,8 @@ public class Transaction {
     public void setStatus(TransactionStatus status) {
         this.status = status;
     }
+
+    public String getFormattedAmount() {
+        return String.format("%.2f ₽", amount);
+    }
 } 

@@ -46,10 +46,25 @@ public class TransactionDialogController implements Initializable {
             }
         });
 
-        // Add validators
+        // Add validators and formatters for amount field
         amountField.textProperty().addListener((observable, oldValue, newValue) -> {
             if (!newValue.matches("\\d*(\\.\\d{0,2})?")) {
                 amountField.setText(oldValue);
+            }
+        });
+
+        // Format amount with ruble symbol when focus is lost
+        amountField.focusedProperty().addListener((observable, oldValue, newValue) -> {
+            if (!newValue) { // focus lost
+                try {
+                    BigDecimal amount = new BigDecimal(amountField.getText().replace("₽", "").trim());
+                    amountField.setText(String.format("%.2f ₽", amount));
+                } catch (NumberFormatException e) {
+                    // Keep the original text if it's not a valid number
+                }
+            } else { // focus gained
+                String text = amountField.getText().replace("₽", "").trim();
+                amountField.setText(text);
             }
         });
     }
@@ -63,13 +78,16 @@ public class TransactionDialogController implements Initializable {
 
         if (transaction != null) {
             typeComboBox.setValue(transaction.getType());
-            amountField.setText(transaction.getAmount().toString());
+            if (transaction.getAmount() != null) {
+                amountField.setText(String.format("%.2f ₽", transaction.getAmount()));
+            }
             categoryComboBox.setValue(transaction.getCategory());
             descriptionArea.setText(transaction.getDescription());
-            datePicker.setValue(transaction.getDate().toLocalDate());
-            statusComboBox.setValue(transaction.getStatus());
+            datePicker.setValue(transaction.getDate() != null ? transaction.getDate().toLocalDate() : LocalDate.now());
+            statusComboBox.setValue(transaction.getStatus() != null ? transaction.getStatus() : TransactionStatus.ACTIVE);
         } else {
             typeComboBox.setValue(TransactionType.EXPENSE);
+            amountField.setText("0.00 ₽");
             datePicker.setValue(LocalDate.now());
             statusComboBox.setValue(TransactionStatus.ACTIVE);
         }
@@ -86,7 +104,7 @@ public class TransactionDialogController implements Initializable {
         }
 
         transaction.setType(typeComboBox.getValue());
-        transaction.setAmount(new BigDecimal(amountField.getText()));
+        transaction.setAmount(new BigDecimal(amountField.getText().replace("₽", "").trim()));
         transaction.setCategory(categoryComboBox.getValue());
         transaction.setDescription(descriptionArea.getText());
         transaction.setDate(datePicker.getValue().atStartOfDay());
@@ -122,7 +140,7 @@ public class TransactionDialogController implements Initializable {
 
         if (errorMessage.isEmpty()) {
             try {
-                new BigDecimal(amountField.getText());
+                new BigDecimal(amountField.getText().replace("₽", "").trim());
                 return true;
             } catch (NumberFormatException e) {
                 errorMessage += "Invalid amount format!\n";

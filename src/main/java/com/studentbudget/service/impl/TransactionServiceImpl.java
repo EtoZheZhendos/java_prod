@@ -7,13 +7,17 @@ import com.studentbudget.model.Category;
 import com.studentbudget.model.TransactionStatus;
 import com.studentbudget.service.TransactionService;
 import com.studentbudget.util.HibernateTransactionManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 
 public class TransactionServiceImpl implements TransactionService {
+    private static final Logger logger = LoggerFactory.getLogger(TransactionServiceImpl.class);
     private final TransactionDao transactionDao;
     private final HibernateTransactionManager transactionManager;
 
@@ -23,7 +27,8 @@ public class TransactionServiceImpl implements TransactionService {
     }
 
     @Override
-    public Transaction addTransaction(Transaction transaction) {
+    public Transaction createTransaction(Transaction transaction) {
+        logger.debug("Creating new transaction: {}", transaction);
         if (transaction.getDate() == null) {
             transaction.setDate(LocalDateTime.now());
         }
@@ -31,54 +36,89 @@ public class TransactionServiceImpl implements TransactionService {
     }
 
     @Override
-    public Transaction updateTransaction(Transaction transaction) {
-        return transactionManager.executeInTransaction(session -> {
-            if (!transactionDao.findById(transaction.getId()).isPresent()) {
+    public void updateTransaction(Transaction transaction) {
+        logger.debug("Updating transaction with id {}: {}", transaction.getId(), transaction);
+        transactionManager.executeInTransactionWithoutResult(session -> {
+            if (transactionDao.findById(transaction.getId()).isEmpty()) {
                 throw new IllegalArgumentException("Transaction not found with id: " + transaction.getId());
             }
-            return transactionDao.update(transaction);
+            transactionDao.update(transaction);
         });
     }
 
     @Override
     public void deleteTransaction(Long id) {
+        logger.debug("Deleting transaction with id: {}", id);
         transactionManager.executeInTransactionWithoutResult(session -> transactionDao.deleteById(id));
     }
 
     @Override
-    public Transaction getTransaction(Long id) {
+    public Transaction getTransactionById(Long id) {
+        logger.debug("Fetching transaction with id: {}", id);
         return transactionManager.executeInTransaction(session -> 
             transactionDao.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Transaction not found with id: " + id)));
+                .orElseThrow(() -> new IllegalArgumentException("Transaction not found with id: " + id))
+        );
     }
 
     @Override
     public List<Transaction> getAllTransactions() {
+        logger.debug("Fetching all transactions");
         return transactionManager.executeInTransaction(session -> transactionDao.findAll());
     }
 
     @Override
     public List<Transaction> getTransactionsByType(TransactionType type) {
+        logger.debug("Fetching transactions by type: {}", type);
         return transactionManager.executeInTransaction(session -> transactionDao.findByType(type));
     }
 
     @Override
     public List<Transaction> getTransactionsByCategory(Category category) {
+        logger.debug("Fetching transactions for category: {}", category.getName());
         return transactionManager.executeInTransaction(session -> transactionDao.findByCategory(category));
     }
 
     @Override
     public List<Transaction> getTransactionsByDateRange(LocalDateTime start, LocalDateTime end) {
+        logger.debug("Fetching transactions between {} and {}", start, end);
         return transactionManager.executeInTransaction(session -> transactionDao.findByDateRange(start, end));
     }
 
     @Override
+    public List<Transaction> getTransactionsByDateRange(LocalDate startDate, LocalDate endDate) {
+        logger.debug("Fetching transactions between dates {} and {}", startDate, endDate);
+        LocalDateTime start = startDate.atStartOfDay();
+        LocalDateTime end = endDate.atTime(23, 59, 59);
+        return getTransactionsByDateRange(start, end);
+    }
+
+    @Override
     public List<Transaction> searchTransactions(String searchTerm) {
+        logger.debug("Searching transactions with query: {}", searchTerm);
         return transactionManager.executeInTransaction(session -> transactionDao.searchByDescription(searchTerm));
     }
 
     @Override
+    public List<Transaction> searchTransactions(String query, Category category, 
+                                              LocalDate startDate, LocalDate endDate) {
+        logger.debug("Searching transactions with query: {}, category: {}, dateRange: {} - {}", 
+                    query, category, startDate, endDate);
+        
+        return transactionManager.executeInTransaction(session -> 
+            getAllTransactions().stream()
+                .filter(t -> (query == null || query.isEmpty() || 
+                            t.getDescription().toLowerCase().contains(query.toLowerCase())))
+                .filter(t -> (category == null || t.getCategory().equals(category)))
+                .filter(t -> (startDate == null || !t.getDate().toLocalDate().isBefore(startDate)))
+                .filter(t -> (endDate == null || !t.getDate().toLocalDate().isAfter(endDate)))
+                .collect(Collectors.toList())
+        );
+    }
+
+    @Override
     public BigDecimal getTotalIncome() {
+        logger.debug("Calculating total income");
         return transactionManager.executeInTransaction(session -> {
             List<Transaction> incomeTransactions = transactionDao.findByType(TransactionType.INCOME);
             return incomeTransactions.stream()
@@ -89,6 +129,7 @@ public class TransactionServiceImpl implements TransactionService {
 
     @Override
     public BigDecimal getTotalExpenses() {
+        logger.debug("Calculating total expenses");
         return transactionManager.executeInTransaction(session -> {
             List<Transaction> expenseTransactions = transactionDao.findByType(TransactionType.EXPENSE);
             return expenseTransactions.stream()
@@ -98,23 +139,14 @@ public class TransactionServiceImpl implements TransactionService {
     }
 
     @Override
-    public BigDecimal getBalance() {
-        return transactionManager.executeInTransaction(session -> {
-            List<Transaction> allTransactions = transactionDao.findAll();
-            BigDecimal income = allTransactions.stream()
-                .filter(t -> t.getType() == TransactionType.INCOME)
-                .map(Transaction::getAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-            BigDecimal expenses = allTransactions.stream()
-                .filter(t -> t.getType() == TransactionType.EXPENSE)
-                .map(Transaction::getAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-            return income.subtract(expenses);
-        });
+    public BigDecimal getCurrentBalance() {
+        logger.debug("Calculating current balance");
+        return getTotalIncome().subtract(getTotalExpenses());
     }
 
     @Override
     public Map<Category, BigDecimal> getExpensesByCategory() {
+        logger.debug("Calculating expenses by category");
         return transactionManager.executeInTransaction(session -> {
             List<Transaction> expenseTransactions = transactionDao.findByType(TransactionType.EXPENSE);
             return expenseTransactions.stream()
@@ -131,8 +163,27 @@ public class TransactionServiceImpl implements TransactionService {
 
     @Override
     public Map<Category, Double> getExpenseDistribution() {
+        logger.debug("Calculating expense distribution");
         return transactionManager.executeInTransaction(session -> {
-            List<Transaction> expenseTransactions = transactionDao.findByType(TransactionType.EXPENSE);
+            // Get all expense transactions first
+            List<Transaction> allExpenses = transactionDao.findByType(TransactionType.EXPENSE);
+            logger.debug("Total expense transactions found: {}", allExpenses.size());
+            
+            // Log each expense transaction for debugging
+            allExpenses.forEach(t -> logger.debug("Expense transaction: amount={}, category={}, status={}", 
+                t.getAmount(), t.getCategory().getName(), t.getStatus()));
+            
+            // Filter active transactions
+            List<Transaction> expenseTransactions = allExpenses.stream()
+                .filter(t -> t.getStatus() == TransactionStatus.ACTIVE)
+                .toList();
+            
+            logger.debug("Active expense transactions after filtering: {}", expenseTransactions.size());
+            
+            // Log each active expense transaction
+            expenseTransactions.forEach(t -> logger.debug("Active expense: amount={}, category={}", 
+                t.getAmount(), t.getCategory().getName()));
+            
             Map<Category, BigDecimal> expensesByCategory = expenseTransactions.stream()
                 .collect(Collectors.groupingBy(
                     Transaction::getCategory,
@@ -143,29 +194,42 @@ public class TransactionServiceImpl implements TransactionService {
                     )
                 ));
             
+            logger.debug("Expenses grouped by category: {}", expensesByCategory);
+            
             BigDecimal totalExpenses = expenseTransactions.stream()
                 .map(Transaction::getAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
             
+            logger.debug("Total expenses amount: {}", totalExpenses);
+            
             if (totalExpenses.compareTo(BigDecimal.ZERO) == 0) {
+                logger.debug("No expenses found, returning empty distribution");
                 return new HashMap<>();
             }
 
-            return expensesByCategory.entrySet().stream()
+            Map<Category, Double> distribution = expensesByCategory.entrySet().stream()
                 .collect(Collectors.toMap(
                     Map.Entry::getKey,
-                    e -> e.getValue().divide(totalExpenses, 4, BigDecimal.ROUND_HALF_UP)
-                        .multiply(BigDecimal.valueOf(100))
-                        .doubleValue()
+                    e -> {
+                        Double percentage = e.getValue()
+                            .divide(totalExpenses, 4, BigDecimal.ROUND_HALF_UP)
+                            .multiply(BigDecimal.valueOf(100))
+                            .doubleValue();
+                        logger.debug("Category {} percentage: {}%", e.getKey().getName(), percentage);
+                        return percentage;
+                    }
                 ));
+                
+            logger.debug("Final distribution: {}", distribution);
+            return distribution;
         });
     }
 
     @Override
     public void updateTransactionStatus(Long id, String newStatus) {
+        logger.debug("Updating transaction status with id: {} to: {}", id, newStatus);
         transactionManager.executeInTransactionWithoutResult(session -> {
-            Transaction transaction = transactionDao.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Transaction not found with id: " + id));
+            Transaction transaction = getTransactionById(id);
             transaction.setStatus(TransactionStatus.valueOf(newStatus.toUpperCase()));
             transactionDao.update(transaction);
         });
@@ -173,6 +237,19 @@ public class TransactionServiceImpl implements TransactionService {
 
     @Override
     public List<Transaction> getTransactionsByStatus(String status) {
+        logger.debug("Fetching transactions by status: {}", status);
         return transactionManager.executeInTransaction(session -> transactionDao.findByStatus(status));
+    }
+
+    @Override
+    public void moveTransactions(Category fromCategory, Category toCategory) {
+        logger.debug("Moving transactions from category {} to category {}", fromCategory.getName(), toCategory.getName());
+        transactionManager.executeInTransactionWithoutResult(session -> {
+            List<Transaction> transactions = transactionDao.findByCategory(fromCategory);
+            for (Transaction transaction : transactions) {
+                transaction.setCategory(toCategory);
+                transactionDao.update(transaction);
+            }
+        });
     }
 } 

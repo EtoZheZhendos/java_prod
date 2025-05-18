@@ -24,6 +24,8 @@ import java.net.URL;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.ResourceBundle;
 
@@ -61,6 +63,11 @@ public class MainController implements Initializable {
     @FXML private TableColumn<Transaction, TransactionStatus> allStatusColumn;
     @FXML private TableColumn<Transaction, Void> actionsColumn;
 
+    @FXML private TableView<Category> categoriesTable;
+    @FXML private TableColumn<Category, String> categoryNameColumn;
+    @FXML private TableColumn<Category, String> categoryDescriptionColumn;
+    @FXML private TableColumn<Category, Void> categoryActionsColumn;
+
     public MainController(TransactionService transactionService, CategoryService categoryService) {
         this.transactionService = transactionService;
         this.categoryService = categoryService;
@@ -70,6 +77,7 @@ public class MainController implements Initializable {
     public void initialize(URL url, ResourceBundle resourceBundle) {
         initializeTableColumns();
         initializeFilters();
+        initializeCategoryTable();
         updateDashboard();
     }
 
@@ -82,12 +90,38 @@ public class MainController implements Initializable {
         descriptionColumn.setCellValueFactory(new PropertyValueFactory<>("description"));
         statusColumn.setCellValueFactory(new PropertyValueFactory<>("status"));
 
+        // Add cell factory for category column to display category name
+        categoryColumn.setCellFactory(column -> new TableCell<>() {
+            @Override
+            protected void updateItem(Category category, boolean empty) {
+                super.updateItem(category, empty);
+                if (empty || category == null) {
+                    setText(null);
+                } else {
+                    setText(category.getName());
+                }
+            }
+        });
+
         allDateColumn.setCellValueFactory(new PropertyValueFactory<>("date"));
         allTypeColumn.setCellValueFactory(new PropertyValueFactory<>("type"));
         allCategoryColumn.setCellValueFactory(new PropertyValueFactory<>("category"));
         allAmountColumn.setCellValueFactory(new PropertyValueFactory<>("amount"));
         allDescriptionColumn.setCellValueFactory(new PropertyValueFactory<>("description"));
         allStatusColumn.setCellValueFactory(new PropertyValueFactory<>("status"));
+
+        // Add cell factory for all transactions category column
+        allCategoryColumn.setCellFactory(column -> new TableCell<>() {
+            @Override
+            protected void updateItem(Category category, boolean empty) {
+                super.updateItem(category, empty);
+                if (empty || category == null) {
+                    setText(null);
+                } else {
+                    setText(category.getName());
+                }
+            }
+        });
 
         // Format date cells
         dateColumn.setCellFactory(column -> new TableCell<>() {
@@ -102,12 +136,51 @@ public class MainController implements Initializable {
             }
         });
 
+        allDateColumn.setCellFactory(column -> new TableCell<>() {
+            @Override
+            protected void updateItem(LocalDateTime item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                } else {
+                    setText(DATE_FORMATTER.format(item));
+                }
+            }
+        });
+
+        // Format amount cells
+        amountColumn.setCellFactory(column -> new TableCell<>() {
+            @Override
+            protected void updateItem(BigDecimal item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                } else {
+                    setText(String.format("%.2f ₽", item));
+                }
+            }
+        });
+
+        allAmountColumn.setCellFactory(column -> new TableCell<>() {
+            @Override
+            protected void updateItem(BigDecimal item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                } else {
+                    setText(String.format("%.2f ₽", item));
+                }
+            }
+        });
+
         // Add action buttons to the actions column
         actionsColumn.setCellFactory(param -> new TableCell<>() {
-            private final Button editButton = new Button("Edit");
-            private final Button deleteButton = new Button("Delete");
+            private final Button editButton = new Button("Изменить");
+            private final Button deleteButton = new Button("Удалить");
 
             {
+                editButton.getStyleClass().add("edit-button");
+                deleteButton.getStyleClass().add("delete-button");
                 editButton.setOnAction(event -> handleEditTransaction(getTableRow().getItem()));
                 deleteButton.setOnAction(event -> handleDeleteTransaction(getTableRow().getItem()));
             }
@@ -142,34 +215,121 @@ public class MainController implements Initializable {
         statusFilter.setItems(FXCollections.observableArrayList(TransactionStatus.values()));
     }
 
+    private void initializeCategoryTable() {
+        categoryNameColumn.setCellValueFactory(new PropertyValueFactory<>("name"));
+        categoryDescriptionColumn.setCellValueFactory(new PropertyValueFactory<>("description"));
+
+        // Add action buttons to the category actions column
+        categoryActionsColumn.setCellFactory(param -> new TableCell<>() {
+            private final Button editButton = new Button("Изменить");
+            private final Button deleteButton = new Button("Удалить");
+
+            {
+                editButton.getStyleClass().add("edit-button");
+                deleteButton.getStyleClass().add("delete-button");
+                editButton.setOnAction(event -> handleEditCategory(getTableRow().getItem()));
+                deleteButton.setOnAction(event -> handleDeleteCategory(getTableRow().getItem()));
+            }
+
+            @Override
+            protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty) {
+                    setGraphic(null);
+                } else {
+                    var container = new javafx.scene.layout.HBox(5);
+                    container.getChildren().addAll(editButton, deleteButton);
+                    setGraphic(container);
+                }
+            }
+        });
+
+        updateCategoryTable();
+    }
+
+    private void updateCategoryTable() {
+        categoriesTable.setItems(FXCollections.observableArrayList(categoryService.getAllCategories()));
+    }
+
     private void updateDashboard() {
-        // Update summary labels
+        updateSummary();
+        updateTransactionTables();
+        updateExpenseChart();
+        updateCategoryTable();
+    }
+
+    private void updateSummary() {
         totalIncomeLabel.setText(formatAmount(transactionService.getTotalIncome()));
         totalExpensesLabel.setText(formatAmount(transactionService.getTotalExpenses()));
-        balanceLabel.setText(formatAmount(transactionService.getBalance()));
+        updateBalanceLabel();
+    }
 
-        // Update transactions table
+    private void updateTransactionTables() {
         transactionsTable.setItems(FXCollections.observableArrayList(transactionService.getAllTransactions()));
         allTransactionsTable.setItems(FXCollections.observableArrayList(transactionService.getAllTransactions()));
-
-        // Update pie chart
-        updateExpenseChart();
     }
 
     private void updateExpenseChart() {
         expenseChart.getData().clear();
         Map<Category, Double> distribution = transactionService.getExpenseDistribution();
-        distribution.forEach((category, percentage) -> 
-            expenseChart.getData().add(new PieChart.Data(category.getName(), percentage))
-        );
+        
+        System.out.println("Updating expense chart with distribution: " + distribution);
+        
+        if (distribution != null && !distribution.isEmpty()) {
+            // Sort categories by percentage for consistent display
+            List<Map.Entry<Category, Double>> sortedEntries = new ArrayList<>(distribution.entrySet());
+            sortedEntries.sort((e1, e2) -> e2.getValue().compareTo(e1.getValue()));
+            
+            System.out.println("Sorted entries for pie chart: " + sortedEntries.size());
+            
+            double totalPercentage = 0.0;
+            for (Map.Entry<Category, Double> entry : sortedEntries) {
+                Category category = entry.getKey();
+                Double percentage = entry.getValue();
+                String name = category != null ? category.getName() : "Без категории";
+                
+                System.out.println(String.format("Adding category to chart: %s with %.2f%%", name, percentage));
+                
+                PieChart.Data slice = new PieChart.Data(
+                    String.format("%s (%.1f%%)", name, percentage),
+                    percentage
+                );
+                expenseChart.getData().add(slice);
+                totalPercentage += percentage;
+            }
+            
+            System.out.println(String.format("Total percentage in pie chart: %.2f%%", totalPercentage));
+            
+            // Add legend if not present
+            expenseChart.setLegendVisible(true);
+        } else {
+            System.out.println("No expense distribution data available");
+            // Add placeholder when no data
+            expenseChart.getData().add(new PieChart.Data("Нет расходов", 100));
+        }
+    }
+
+    private void updateBalanceLabel() {
+        BigDecimal balance = transactionService.getCurrentBalance();
+        balanceLabel.setText(formatAmount(balance));
     }
 
     @FXML
     private void handleAddTransaction() {
-        Transaction transaction = showTransactionDialog(null);
-        if (transaction != null) {
-            transactionService.addTransaction(transaction);
-            updateDashboard();
+        Transaction transaction = new Transaction();
+        boolean okClicked = showTransactionDialog(transaction, "Добавить Транзакцию");
+        
+        if (okClicked) {
+            try {
+                transactionService.createTransaction(transaction);
+                updateDashboard();
+            } catch (Exception e) {
+                Alert alert = new Alert(Alert.AlertType.ERROR);
+                alert.setTitle("Ошибка");
+                alert.setHeaderText("Ошибка при создании транзакции");
+                alert.setContentText(e.getMessage());
+                alert.showAndWait();
+            }
         }
     }
 
@@ -181,7 +341,7 @@ public class MainController implements Initializable {
             scene.getStylesheets().add(getClass().getResource("/css/styles.css").toExternalForm());
 
             Stage dialogStage = new Stage();
-            dialogStage.setTitle("Add Category");
+            dialogStage.setTitle("Добавить Категорию");
             dialogStage.initModality(Modality.WINDOW_MODAL);
             dialogStage.initOwner(totalIncomeLabel.getScene().getWindow());
             dialogStage.setScene(scene);
@@ -193,6 +353,7 @@ public class MainController implements Initializable {
 
             if (controller.isOkClicked()) {
                 updateDashboard();
+                updateCategoryTable();
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -216,9 +377,9 @@ public class MainController implements Initializable {
     }
 
     private void handleEditTransaction(Transaction transaction) {
-        Transaction editedTransaction = showTransactionDialog(transaction);
-        if (editedTransaction != null) {
-            transactionService.updateTransaction(editedTransaction);
+        boolean okClicked = showTransactionDialog(transaction, "Редактировать Транзакцию");
+        if (okClicked) {
+            transactionService.updateTransaction(transaction);
             updateDashboard();
         }
     }
@@ -235,14 +396,14 @@ public class MainController implements Initializable {
         });
     }
 
-    private Transaction showTransactionDialog(Transaction transaction) {
+    private boolean showTransactionDialog(Transaction transaction, String title) {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/transaction-dialog.fxml"));
             Scene scene = new Scene(loader.load());
             scene.getStylesheets().add(getClass().getResource("/css/styles.css").toExternalForm());
 
             Stage dialogStage = new Stage();
-            dialogStage.setTitle(transaction == null ? "Add Transaction" : "Edit Transaction");
+            dialogStage.setTitle(title);
             dialogStage.initModality(Modality.WINDOW_MODAL);
             dialogStage.initOwner(totalIncomeLabel.getScene().getWindow());
             dialogStage.setScene(scene);
@@ -253,14 +414,136 @@ public class MainController implements Initializable {
 
             dialogStage.showAndWait();
 
-            return controller.isSaveClicked() ? controller.getTransaction() : null;
+            if (controller.isSaveClicked()) {
+                transaction = controller.getTransaction();
+                return true;
+            }
+            return false;
         } catch (IOException e) {
             e.printStackTrace();
-            return null;
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Ошибка");
+            alert.setHeaderText("Ошибка при открытии диалога");
+            alert.setContentText("Не удалось открыть диалог транзакции: " + e.getMessage());
+            alert.showAndWait();
+            return false;
         }
     }
 
+    private void handleEditCategory(Category category) {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/CategoryDialog.fxml"));
+            Scene scene = new Scene(loader.load());
+            scene.getStylesheets().add(getClass().getResource("/css/styles.css").toExternalForm());
+
+            Stage dialogStage = new Stage();
+            dialogStage.setTitle("Редактировать Категорию");
+            dialogStage.initModality(Modality.WINDOW_MODAL);
+            dialogStage.initOwner(totalIncomeLabel.getScene().getWindow());
+            dialogStage.setScene(scene);
+
+            CategoryDialogController controller = loader.getController();
+            controller.setDialogStage(dialogStage);
+            controller.setCategory(category);
+
+            dialogStage.showAndWait();
+
+            if (controller.isOkClicked()) {
+                updateDashboard();
+                updateCategoryTable();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void handleDeleteCategory(Category category) {
+        Alert confirmAlert = new Alert(Alert.AlertType.CONFIRMATION,
+                "Вы уверены, что хотите удалить эту категорию?",
+                ButtonType.YES, ButtonType.NO);
+        confirmAlert.setTitle("Удаление категории");
+        confirmAlert.setHeaderText("Подтверждение удаления");
+        
+        confirmAlert.showAndWait().ifPresent(response -> {
+            if (response == ButtonType.YES) {
+                try {
+                    if (categoryService.hasTransactions(category.getId())) {
+                        // Если у категории есть транзакции, предложим переместить их
+                        Alert moveAlert = new Alert(Alert.AlertType.CONFIRMATION,
+                                "У этой категории есть транзакции. Хотите переместить их в другую категорию?",
+                                ButtonType.YES, ButtonType.NO);
+                        moveAlert.setTitle("Перемещение транзакций");
+                        moveAlert.setHeaderText("Обнаружены связанные транзакции");
+                        
+                        moveAlert.showAndWait().ifPresent(moveResponse -> {
+                            if (moveResponse == ButtonType.YES) {
+                                // Показываем диалог выбора новой категории
+                                List<Category> categories = categoryService.getAllCategories();
+                                categories.remove(category);
+                                
+                                if (categories.isEmpty()) {
+                                    Alert errorAlert = new Alert(Alert.AlertType.ERROR);
+                                    errorAlert.setTitle("Ошибка");
+                                    errorAlert.setHeaderText("Нет доступных категорий");
+                                    errorAlert.setContentText("Создайте новую категорию перед удалением текущей.");
+                                    errorAlert.showAndWait();
+                                    return;
+                                }
+                                
+                                ChoiceDialog<Category> dialog = new ChoiceDialog<>(categories.get(0), categories);
+                                dialog.setTitle("Выбор категории");
+                                dialog.setHeaderText("Выберите категорию для перемещения транзакций");
+                                dialog.setContentText("Категория:");
+                                
+                                dialog.getDialogPane().lookupAll(".combo-box").forEach(node -> {
+                                    if (node instanceof ComboBox) {
+                                        @SuppressWarnings("unchecked")
+                                        ComboBox<Category> comboBox = (ComboBox<Category>) node;
+                                        comboBox.setConverter(new StringConverter<>() {
+                                            @Override
+                                            public String toString(Category cat) {
+                                                return cat != null ? cat.getName() : "";
+                                            }
+                                            
+                                            @Override
+                                            public Category fromString(String string) {
+                                                return null;
+                                            }
+                                        });
+                                    }
+                                });
+                                
+                                dialog.showAndWait().ifPresent(newCategory -> {
+                                    try {
+                                        categoryService.deleteCategoryWithTransactions(category.getId(), newCategory);
+                                        updateDashboard();
+                                    } catch (Exception ex) {
+                                        Alert errorAlert = new Alert(Alert.AlertType.ERROR);
+                                        errorAlert.setTitle("Ошибка");
+                                        errorAlert.setHeaderText("Ошибка при удалении категории");
+                                        errorAlert.setContentText(ex.getMessage());
+                                        errorAlert.showAndWait();
+                                    }
+                                });
+                            }
+                        });
+                    } else {
+                        // Если у категории нет транзакций, просто удаляем её
+                        categoryService.deleteCategory(category.getId());
+                        updateDashboard();
+                    }
+                } catch (Exception e) {
+                    Alert errorAlert = new Alert(Alert.AlertType.ERROR);
+                    errorAlert.setTitle("Ошибка");
+                    errorAlert.setHeaderText("Ошибка при удалении категории");
+                    errorAlert.setContentText(e.getMessage());
+                    errorAlert.showAndWait();
+                }
+            }
+        });
+    }
+
     private String formatAmount(BigDecimal amount) {
-        return String.format("$%.2f", amount);
+        return String.format("%.2f ₽", amount);
     }
 } 

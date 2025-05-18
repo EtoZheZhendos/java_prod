@@ -2,61 +2,57 @@ package com.studentbudget.config;
 
 import com.studentbudget.dao.CategoryDao;
 import com.studentbudget.dao.TransactionDao;
-import com.studentbudget.dao.impl.HibernateCategoryDao;
-import com.studentbudget.dao.impl.HibernateTransactionDao;
+import com.studentbudget.dao.impl.CategoryDaoImpl;
+import com.studentbudget.dao.impl.TransactionDaoImpl;
 import com.studentbudget.service.CategoryService;
+import com.studentbudget.service.SettingsService;
 import com.studentbudget.service.TransactionService;
 import com.studentbudget.service.impl.CategoryServiceImpl;
+import com.studentbudget.service.impl.SettingsServiceImpl;
 import com.studentbudget.service.impl.TransactionServiceImpl;
 import com.studentbudget.util.HibernateTransactionManager;
 import org.hibernate.SessionFactory;
 import org.hibernate.cfg.Configuration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class AppConfig {
-    private static final AppConfig INSTANCE = new AppConfig();
+    private static final Logger logger = LoggerFactory.getLogger(AppConfig.class);
+    private static AppConfig instance;
     private final SessionFactory sessionFactory;
     private final HibernateTransactionManager transactionManager;
-    private final TransactionDao transactionDao;
-    private final CategoryDao categoryDao;
     private final TransactionService transactionService;
     private final CategoryService categoryService;
+    private final SettingsService settingsService;
 
     private AppConfig() {
+        logger.debug("Initializing application configuration");
+        
         // Initialize Hibernate
-        this.sessionFactory = new Configuration()
-                .configure() // Load hibernate.cfg.xml
+        sessionFactory = new Configuration()
+                .configure("hibernate.cfg.xml")
                 .buildSessionFactory();
 
         // Initialize Transaction Manager
-        this.transactionManager = new HibernateTransactionManager(sessionFactory);
+        transactionManager = new HibernateTransactionManager(sessionFactory);
 
         // Initialize DAOs
-        this.transactionDao = new HibernateTransactionDao(sessionFactory);
-        this.categoryDao = new HibernateCategoryDao(sessionFactory);
+        TransactionDao transactionDao = new TransactionDaoImpl(sessionFactory);
+        CategoryDao categoryDao = new CategoryDaoImpl(sessionFactory);
 
         // Initialize Services
         this.transactionService = new TransactionServiceImpl(transactionDao, transactionManager);
-        this.categoryService = new CategoryServiceImpl(categoryDao, transactionManager);
+        this.categoryService = new CategoryServiceImpl(categoryDao, transactionDao, transactionManager);
+        this.settingsService = new SettingsServiceImpl();
+        
+        logger.info("Application configuration initialized successfully");
     }
 
-    public static AppConfig getInstance() {
-        return INSTANCE;
-    }
-
-    public SessionFactory getSessionFactory() {
-        return sessionFactory;
-    }
-
-    public HibernateTransactionManager getTransactionManager() {
-        return transactionManager;
-    }
-
-    public TransactionDao getTransactionDao() {
-        return transactionDao;
-    }
-
-    public CategoryDao getCategoryDao() {
-        return categoryDao;
+    public static synchronized AppConfig getInstance() {
+        if (instance == null) {
+            instance = new AppConfig();
+        }
+        return instance;
     }
 
     public TransactionService getTransactionService() {
@@ -67,7 +63,16 @@ public class AppConfig {
         return categoryService;
     }
 
+    public SettingsService getSettingsService() {
+        return settingsService;
+    }
+
+    public HibernateTransactionManager getTransactionManager() {
+        return transactionManager;
+    }
+
     public void shutdown() {
+        logger.info("Shutting down application");
         if (sessionFactory != null) {
             sessionFactory.close();
         }

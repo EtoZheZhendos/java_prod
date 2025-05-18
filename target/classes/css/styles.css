@@ -243,3 +243,126 @@
 .chart-legend-item {
   -fx-text-fill: #ffffff;
 }
+
+/* Dialog Styles */
+.root {
+  -fx-background-color: #2b2b2b;
+  -fx-text-fill: #ffffff;
+}
+
+.dialog-container {
+  -fx-background-color: #2b2b2b;
+  -fx-padding: 20px;
+}
+
+.text-field,
+.text-area,
+.combo-box,
+.date-picker {
+  -fx-background-color: #3c3f41;
+  -fx-text-fill: white;
+  -fx-prompt-text-fill: #888888;
+  -fx-border-color: #555555;
+  -fx-border-radius: 3px;
+}
+
+.text-area .content {
+  -fx-background-color: #3c3f41;
+}
+
+.text-area {
+  -fx-text-fill: white;
+}
+
+.combo-box .list-cell {
+  -fx-background-color: #3c3f41;
+  -fx-text-fill: white;
+}
+
+.combo-box-popup .list-view {
+  -fx-background-color: #3c3f41;
+  -fx-border-color: #555555;
+}
+
+.combo-box-popup .list-cell:hover {
+  -fx-background-color: #4c5052;
+}
+
+.date-picker .text-field {
+  -fx-background-color: #3c3f41;
+}
+
+.date-picker-popup {
+  -fx-background-color: #2b2b2b;
+  -fx-border-color: #555555;
+}
+
+.date-picker-popup .month-year-pane {
+  -fx-background-color: #3c3f41;
+}
+
+.date-picker-popup .calendar-grid {
+  -fx-background-color: #2b2b2b;
+}
+
+.date-picker-popup .day-cell {
+  -fx-background-color: #3c3f41;
+  -fx-text-fill: white;
+}
+
+.date-picker-popup .day-cell:hover {
+  -fx-background-color: #4c5052;
+}
+
+.date-picker-popup .selected {
+  -fx-background-color: #007bff;
+}
+
+.button {
+  -fx-background-color: #007bff;
+  -fx-text-fill: white;
+  -fx-padding: 8px 16px;
+  -fx-background-radius: 4px;
+}
+
+.button:hover {
+  -fx-background-color: #0056b3;
+}
+
+.button:pressed {
+  -fx-background-color: #004085;
+}
+
+.button.cancel {
+  -fx-background-color: #6c757d;
+}
+
+.button.cancel:hover {
+  -fx-background-color: #5a6268;
+}
+
+.button.cancel:pressed {
+  -fx-background-color: #545b62;
+}
+
+.edit-button {
+  -fx-background-color: #4caf50;
+  -fx-text-fill: white;
+  -fx-padding: 5px 10px;
+  -fx-background-radius: 3;
+}
+
+.edit-button:hover {
+  -fx-background-color: #45a049;
+}
+
+.delete-button {
+  -fx-background-color: #f44336;
+  -fx-text-fill: white;
+  -fx-padding: 5px 10px;
+  -fx-background-radius: 3;
+}
+
+.delete-button:hover {
+  -fx-background-color: #da190b;
+}
