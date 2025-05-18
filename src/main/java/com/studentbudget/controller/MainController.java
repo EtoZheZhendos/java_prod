@@ -409,7 +409,15 @@ public class MainController implements Initializable {
             dialogStage.setScene(scene);
 
             TransactionDialogController controller = loader.getController();
-            controller.setCategories(categoryService.getAllCategories());
+            
+            // Get all categories and log them
+            List<Category> categories = categoryService.getAllCategories();
+            System.out.println("Loading categories for transaction dialog: " + categories.size());
+            categories.forEach(category -> 
+                System.out.println("Category: " + category.getName() + " (ID: " + category.getId() + ")")
+            );
+            
+            controller.setCategories(categories);
             controller.setTransaction(transaction);
 
             dialogStage.showAndWait();

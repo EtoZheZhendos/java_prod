@@ -10,6 +10,7 @@ import com.studentbudget.service.TransactionService;
 import com.studentbudget.service.impl.CategoryServiceImpl;
 import com.studentbudget.service.impl.SettingsServiceImpl;
 import com.studentbudget.service.impl.TransactionServiceImpl;
+import com.studentbudget.util.DatabaseInitializer;
 import com.studentbudget.util.HibernateTransactionManager;
 import org.hibernate.SessionFactory;
 import org.hibernate.cfg.Configuration;
@@ -28,24 +29,42 @@ public class AppConfig {
     private AppConfig() {
         logger.debug("Initializing application configuration");
         
-        // Initialize Hibernate
-        sessionFactory = new Configuration()
-                .configure("hibernate.cfg.xml")
-                .buildSessionFactory();
+        try {
+            // Initialize Hibernate
+            sessionFactory = new Configuration()
+                    .configure("hibernate.cfg.xml")
+                    .buildSessionFactory();
 
-        // Initialize Transaction Manager
-        transactionManager = new HibernateTransactionManager(sessionFactory);
+            // Initialize Transaction Manager
+            transactionManager = new HibernateTransactionManager(sessionFactory);
 
-        // Initialize DAOs
-        TransactionDao transactionDao = new TransactionDaoImpl(sessionFactory);
-        CategoryDao categoryDao = new CategoryDaoImpl(sessionFactory);
+            // Initialize DAOs
+            TransactionDao transactionDao = new TransactionDaoImpl(sessionFactory);
+            CategoryDao categoryDao = new CategoryDaoImpl(sessionFactory);
 
-        // Initialize Services
-        this.transactionService = new TransactionServiceImpl(transactionDao, transactionManager);
-        this.categoryService = new CategoryServiceImpl(categoryDao, transactionDao, transactionManager);
-        this.settingsService = new SettingsServiceImpl();
-        
-        logger.info("Application configuration initialized successfully");
+            // Initialize Services
+            this.transactionService = new TransactionServiceImpl(transactionDao, transactionManager);
+            this.categoryService = new CategoryServiceImpl(categoryDao, transactionDao, transactionManager);
+            this.settingsService = new SettingsServiceImpl();
+            
+            // Initialize database with default data
+            logger.info("Starting database initialization");
+            DatabaseInitializer databaseInitializer = new DatabaseInitializer(categoryService);
+            transactionManager.executeInTransactionWithoutResult(session -> {
+                try {
+                    databaseInitializer.initializeCategories();
+                    logger.info("Database initialization completed successfully");
+                } catch (Exception e) {
+                    logger.error("Failed to initialize database: {}", e.getMessage(), e);
+                    throw new RuntimeException("Database initialization failed", e);
+                }
+            });
+            
+            logger.info("Application configuration initialized successfully");
+        } catch (Exception e) {
+            logger.error("Failed to initialize application configuration: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to initialize application", e);
+        }
     }
 
     public static synchronized AppConfig getInstance() {

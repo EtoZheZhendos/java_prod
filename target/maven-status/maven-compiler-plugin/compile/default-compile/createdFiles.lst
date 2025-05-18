@@ -37,6 +37,7 @@ com\studentbudget\dao\impl\RestApiTransactionDao$2.class
 com\studentbudget\dao\impl\RestApiTransactionDao$5.class
 com\studentbudget\controller\MainController$1.class
 com\studentbudget\dao\impl\HibernateTransactionDao.class
+com\studentbudget\util\DatabaseInitializer.class
 com\studentbudget\service\impl\CategoryServiceImpl.class
 com\studentbudget\controller\MainController$4.class
 com\studentbudget\model\TransactionType.class

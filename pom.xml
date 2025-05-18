@@ -95,6 +95,14 @@
                 <version>0.0.8</version>
                 <configuration>
                     <mainClass>com.studentbudget.Main</mainClass>
+                    <options>
+                        <option>--add-opens</option>
+                        <option>java.base/java.lang=ALL-UNNAMED</option>
+                        <option>--module-path</option>
+                        <option>${project.build.directory}/classes</option>
+                        <option>--add-modules</option>
+                        <option>javafx.controls,javafx.fxml,javafx.graphics</option>
+                    </options>
                     <launcher>student-budget</launcher>
                     <jlinkImageName>student-budget</jlinkImageName>
                     <noManPages>true</noManPages>

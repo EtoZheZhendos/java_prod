@@ -70,7 +70,19 @@ public class TransactionDialogController implements Initializable {
     }
 
     public void setCategories(List<Category> categories) {
+        System.out.println("Setting categories in dialog: " + categories.size());
+        categoryComboBox.getItems().clear();
         categoryComboBox.getItems().addAll(categories);
+        
+        // Log each category being added
+        categories.forEach(category -> 
+            System.out.println("Added category to combo box: " + category.getName())
+        );
+        
+        // If there are categories, select the first one by default
+        if (!categories.isEmpty()) {
+            categoryComboBox.setValue(categories.get(0));
+        }
     }
 
     public void setTransaction(Transaction transaction) {
@@ -81,7 +93,13 @@ public class TransactionDialogController implements Initializable {
             if (transaction.getAmount() != null) {
                 amountField.setText(String.format("%.2f ₽", transaction.getAmount()));
             }
-            categoryComboBox.setValue(transaction.getCategory());
+            if (transaction.getCategory() != null) {
+                // Find the category in the combo box items
+                categoryComboBox.getItems().stream()
+                    .filter(c -> c.getId().equals(transaction.getCategory().getId()))
+                    .findFirst()
+                    .ifPresent(categoryComboBox::setValue);
+            }
             descriptionArea.setText(transaction.getDescription());
             datePicker.setValue(transaction.getDate() != null ? transaction.getDate().toLocalDate() : LocalDate.now());
             statusComboBox.setValue(transaction.getStatus() != null ? transaction.getStatus() : TransactionStatus.ACTIVE);

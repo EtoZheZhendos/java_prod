@@ -21,5 +21,6 @@ C:\JS\java_prod\src\main\java\com\studentbudget\dao\impl\RestApiTransactionDao.j
 C:\JS\java_prod\src\main\java\com\studentbudget\dao\impl\JsonFileTransactionDao.java
 C:\JS\java_prod\src\main\java\com\studentbudget\dao\CategoryDao.java
 C:\JS\java_prod\src\main\java\com\studentbudget\service\CategoryService.java
+C:\JS\java_prod\src\main\java\com\studentbudget\util\DatabaseInitializer.java
 C:\JS\java_prod\src\main\java\com\studentbudget\model\Transaction.java
 C:\JS\java_prod\src\main\java\com\studentbudget\model\TransactionType.java
