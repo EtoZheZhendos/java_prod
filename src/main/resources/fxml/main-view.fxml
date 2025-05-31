@@ -2,99 +2,105 @@
 
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
+<?import javafx.scene.chart.*?>
 <?import javafx.geometry.Insets?>
-<?import javafx.scene.chart.PieChart?>
 
 <VBox xmlns="http://javafx.com/javafx"
       xmlns:fx="http://javafx.com/fxml"
-      fx:controller="com.studentbudget.controller.MainController"
-      spacing="10" styleClass="root">
+      spacing="10" styleClass="main-container">
 
     <padding>
         <Insets top="20" right="20" bottom="20" left="20"/>
     </padding>
 
+    <!-- Верхняя панель с заголовком и кнопкой выхода -->
     <HBox spacing="10" alignment="CENTER_LEFT">
         <Label text="Управление Бюджетом Студента" styleClass="title-label"/>
         <Region HBox.hgrow="ALWAYS"/>
-        <Button text="Добавить Транзакцию" onAction="#handleAddTransaction"/>
+        <Label fx:id="currentUserLabel" styleClass="user-info-label"/>
+        <Button text="Выйти" onAction="#handleLogout" styleClass="logout-button"/>
     </HBox>
 
-    <TabPane VBox.vgrow="ALWAYS">
-        <Tab text="Обзор" closable="false">
-            <VBox spacing="10">
-                <HBox spacing="20" alignment="CENTER_LEFT">
+    <TabPane fx:id="mainTabPane">
+        <Tab text="Главная" closable="false">
+            <VBox spacing="20">
+                <!-- Сводка -->
+                <HBox spacing="20">
                     <VBox styleClass="summary-box">
-                        <Label text="Общий Доход"/>
+                        <Label text="Общий доход"/>
                         <Label fx:id="totalIncomeLabel" styleClass="amount-label"/>
                     </VBox>
                     <VBox styleClass="summary-box">
-                        <Label text="Общие Расходы"/>
+                        <Label text="Общие расходы"/>
                         <Label fx:id="totalExpensesLabel" styleClass="amount-label"/>
                     </VBox>
                     <VBox styleClass="summary-box">
-                        <Label text="Текущий Баланс"/>
+                        <Label text="Баланс"/>
                         <Label fx:id="balanceLabel" styleClass="amount-label"/>
                     </VBox>
                 </HBox>
 
-                <HBox spacing="20" VBox.vgrow="ALWAYS">
-                    <VBox HBox.hgrow="ALWAYS">
-                        <Label text="Последние Транзакции"/>
-                        <TableView fx:id="transactionsTable" VBox.vgrow="ALWAYS">
-                            <columns>
-                                <TableColumn fx:id="dateColumn" text="Дата"/>
-                                <TableColumn fx:id="typeColumn" text="Тип"/>
-                                <TableColumn fx:id="categoryColumn" text="Категория"/>
-                                <TableColumn fx:id="amountColumn" text="Сумма"/>
-                                <TableColumn fx:id="descriptionColumn" text="Описание"/>
-                                <TableColumn fx:id="statusColumn" text="Статус"/>
-                            </columns>
-                        </TableView>
-                    </VBox>
-                    <VBox minWidth="300">
-                        <Label text="Распределение Расходов"/>
-                        <PieChart fx:id="expenseChart" VBox.vgrow="ALWAYS"/>
-                    </VBox>
-                </HBox>
-            </VBox>
-        </Tab>
+                <!-- График расходов -->
+                <PieChart fx:id="expenseChart" title="Распределение расходов"/>
 
-        <Tab text="Транзакции" closable="false">
-            <VBox spacing="10">
+                <!-- Фильтры -->
                 <HBox spacing="10" alignment="CENTER_LEFT">
-                    <TextField fx:id="searchField" promptText="Поиск транзакций..." HBox.hgrow="ALWAYS"/>
-                    <ComboBox fx:id="categoryFilter" promptText="Фильтр по Категории"/>
-                    <ComboBox fx:id="statusFilter" promptText="Фильтр по Статусу"/>
-                    <DatePicker fx:id="startDate" promptText="Дата Начала"/>
-                    <DatePicker fx:id="endDate" promptText="Дата Окончания"/>
+                    <TextField fx:id="searchField" promptText="Поиск по описанию"/>
+                    <ComboBox fx:id="categoryFilter" promptText="Категория"/>
+                    <ComboBox fx:id="statusFilter" promptText="Статус"/>
+                    <ComboBox fx:id="userFilter" promptText="Пользователь"/>
+                    <DatePicker fx:id="startDate" promptText="Начальная дата"/>
+                    <DatePicker fx:id="endDate" promptText="Конечная дата"/>
                     <Button text="Поиск" onAction="#handleSearch"/>
                 </HBox>
 
-                <TableView fx:id="allTransactionsTable" VBox.vgrow="ALWAYS">
+                <!-- Таблица транзакций -->
+                <TableView fx:id="transactionsTable" VBox.vgrow="ALWAYS">
                     <columns>
-                        <TableColumn fx:id="allDateColumn" text="Дата"/>
-                        <TableColumn fx:id="allTypeColumn" text="Тип"/>
-                        <TableColumn fx:id="allCategoryColumn" text="Категория"/>
-                        <TableColumn fx:id="allAmountColumn" text="Сумма"/>
-                        <TableColumn fx:id="allDescriptionColumn" text="Описание"/>
-                        <TableColumn fx:id="allStatusColumn" text="Статус"/>
-                        <TableColumn fx:id="actionsColumn" text="Действия"/>
+                        <TableColumn fx:id="dateColumn" text="Дата"/>
+                        <TableColumn fx:id="typeColumn" text="Тип"/>
+                        <TableColumn fx:id="categoryColumn" text="Категория"/>
+                        <TableColumn fx:id="amountColumn" text="Сумма"/>
+                        <TableColumn fx:id="descriptionColumn" text="Описание"/>
+                        <TableColumn fx:id="statusColumn" text="Статус"/>
+                        <TableColumn fx:id="userColumn" text="Пользователь"/>
                     </columns>
                 </TableView>
+
+                <!-- Кнопки управления -->
+                <HBox spacing="10">
+                    <Button text="Добавить транзакцию" onAction="#handleAddTransaction"/>
+                </HBox>
             </VBox>
         </Tab>
 
         <Tab text="Категории" closable="false">
             <VBox spacing="10">
-                <HBox spacing="10" alignment="CENTER_LEFT">
-                    <Button text="Добавить Категорию" onAction="#handleAddCategory"/>
+                <HBox spacing="10">
+                    <Button text="Добавить категорию" onAction="#handleAddCategory"/>
                 </HBox>
                 <TableView fx:id="categoriesTable" VBox.vgrow="ALWAYS">
                     <columns>
                         <TableColumn fx:id="categoryNameColumn" text="Название"/>
                         <TableColumn fx:id="categoryDescriptionColumn" text="Описание"/>
                         <TableColumn fx:id="categoryActionsColumn" text="Действия"/>
+                    </columns>
+                </TableView>
+            </VBox>
+        </Tab>
+
+        <Tab fx:id="adminTab" text="Администрирование" closable="false">
+            <VBox spacing="10">
+                <TableView fx:id="usersTable" VBox.vgrow="ALWAYS">
+                    <columns>
+                        <TableColumn fx:id="usernameColumn" text="Имя пользователя"/>
+                        <TableColumn fx:id="firstNameColumn" text="Имя"/>
+                        <TableColumn fx:id="lastNameColumn" text="Фамилия"/>
+                        <TableColumn fx:id="emailColumn" text="Email"/>
+                        <TableColumn fx:id="roleColumn" text="Роль"/>
+                        <TableColumn fx:id="createdAtColumn" text="Дата регистрации"/>
+                        <TableColumn fx:id="activeColumn" text="Активен"/>
+                        <TableColumn fx:id="userBalanceColumn" text="Баланс"/>
                     </columns>
                 </TableView>
             </VBox>

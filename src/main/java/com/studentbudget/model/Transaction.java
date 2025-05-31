@@ -22,6 +22,10 @@ public class Transaction {
     @JoinColumn(name = "category_id", nullable = false)
     private Category category;
 
+    @ManyToOne
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
+
     @Column(nullable = false)
     private LocalDateTime date;
 
@@ -34,12 +38,13 @@ public class Transaction {
     // Constructors
     public Transaction() {}
 
-    public Transaction(BigDecimal amount, TransactionType type, Category category, String description) {
+    public Transaction(BigDecimal amount, TransactionType type, Category category, String description, User user) {
         this.amount = amount;
         this.type = type;
         this.category = category;
         this.description = description;
         this.date = LocalDateTime.now();
+        this.user = user;
     }
 
     // Getters and Setters
@@ -75,6 +80,14 @@ public class Transaction {
         this.category = category;
     }
 
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
+    }
+
     public LocalDateTime getDate() {
         return date;
     }
@@ -101,5 +114,19 @@ public class Transaction {
 
     public String getFormattedAmount() {
         return String.format("%.2f ₽", amount);
+    }
+
+    @Override
+    public String toString() {
+        return "Transaction{" +
+                "id=" + id +
+                ", amount=" + amount +
+                ", type=" + type +
+                ", category=" + category.getName() +
+                ", user=" + user.getUsername() +
+                ", date=" + date +
+                ", description='" + description + '\'' +
+                ", status=" + status +
+                '}';
     }
 } 

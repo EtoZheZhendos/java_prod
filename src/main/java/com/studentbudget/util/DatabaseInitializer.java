@@ -5,6 +5,7 @@ import com.studentbudget.service.CategoryService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Arrays;
 import java.util.List;
 
 public class DatabaseInitializer {
@@ -15,55 +16,37 @@ public class DatabaseInitializer {
         this.categoryService = categoryService;
     }
 
-    public void initializeCategories() {
-        logger.info("Starting database initialization...");
-        
-        // First, check existing categories
-        List<Category> existingCategories = categoryService.getAllCategories();
-        logger.info("Found {} existing categories", existingCategories.size());
-        existingCategories.forEach(category -> 
-            logger.info("Existing category: {} (ID: {})", category.getName(), category.getId())
-        );
-
-        // Create default categories if none exist
-        if (existingCategories.isEmpty()) {
-            logger.info("No categories found, creating defaults...");
-            
-            createCategoryIfNotExists("Продукты", "Расходы на продукты питания");
-            createCategoryIfNotExists("Транспорт", "Расходы на общественный транспорт и такси");
-            createCategoryIfNotExists("Развлечения", "Расходы на кино, театры, концерты");
-            createCategoryIfNotExists("Образование", "Расходы на учебные материалы и курсы");
-            createCategoryIfNotExists("Здоровье", "Расходы на медицину и лекарства");
-            createCategoryIfNotExists("Одежда", "Расходы на одежду и обувь");
-            createCategoryIfNotExists("Связь", "Расходы на телефон и интернет");
-            createCategoryIfNotExists("Хобби", "Расходы на хобби и увлечения");
-            createCategoryIfNotExists("Подработка", "Доходы от подработки");
-            createCategoryIfNotExists("Стипендия", "Доходы от стипендии");
-            
-            // Verify categories were created
-            List<Category> newCategories = categoryService.getAllCategories();
-            logger.info("Created {} new categories", newCategories.size());
-            newCategories.forEach(category -> 
-                logger.info("New category: {} (ID: {})", category.getName(), category.getId())
-            );
+    public void initialize() {
+        try {
+            initializeCategories();
+            logger.info("Database initialization completed successfully");
+        } catch (Exception e) {
+            logger.error("Failed to initialize database", e);
+            throw new RuntimeException("Database initialization failed", e);
         }
-        
-        logger.info("Database initialization completed");
     }
 
-    private void createCategoryIfNotExists(String name, String description) {
-        try {
-            Category existing = categoryService.getCategoryByName(name);
-            if (existing == null) {
-                Category category = new Category(name, description);
-                Category created = categoryService.createCategory(category);
-                logger.info("Created new category: {} (ID: {})", created.getName(), created.getId());
-            } else {
-                logger.debug("Category already exists: {} (ID: {})", existing.getName(), existing.getId());
+    private void initializeCategories() {
+        List<Category> defaultCategories = Arrays.asList(
+            new Category("Продукты", "Расходы на продукты питания"),
+            new Category("Транспорт", "Расходы на общественный транспорт и такси"),
+            new Category("Учебные материалы", "Книги, канцтовары и другие учебные принадлежности"),
+            new Category("Развлечения", "Кино, театры, концерты и другие развлечения"),
+            new Category("Стипендия", "Доходы от стипендии"),
+            new Category("Подработка", "Доходы от частичной занятости"),
+            new Category("Помощь родителей", "Финансовая поддержка от родителей")
+        );
+
+        for (Category category : defaultCategories) {
+            if (!categoryExists(category.getName())) {
+                categoryService.createCategory(category);
+                logger.info("Created default category: {}", category.getName());
             }
-        } catch (Exception e) {
-            logger.error("Error creating category {}: {}", name, e.getMessage(), e);
-            throw new RuntimeException("Failed to create category: " + name, e);
         }
+    }
+
+    private boolean categoryExists(String name) {
+        return categoryService.getAllCategories().stream()
+                .anyMatch(c -> c.getName().equals(name));
     }
 } 

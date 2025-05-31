@@ -34,5 +34,6 @@
         <!-- Mapping files -->
         <mapping class="com.studentbudget.model.Transaction"/>
         <mapping class="com.studentbudget.model.Category"/>
+        <mapping class="com.studentbudget.model.User"/>
     </session-factory>
 </hibernate-configuration> 

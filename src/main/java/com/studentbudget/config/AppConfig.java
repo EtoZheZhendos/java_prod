@@ -1,15 +1,9 @@
 package com.studentbudget.config;
 
-import com.studentbudget.dao.CategoryDao;
-import com.studentbudget.dao.TransactionDao;
-import com.studentbudget.dao.impl.CategoryDaoImpl;
-import com.studentbudget.dao.impl.TransactionDaoImpl;
-import com.studentbudget.service.CategoryService;
-import com.studentbudget.service.SettingsService;
-import com.studentbudget.service.TransactionService;
-import com.studentbudget.service.impl.CategoryServiceImpl;
-import com.studentbudget.service.impl.SettingsServiceImpl;
-import com.studentbudget.service.impl.TransactionServiceImpl;
+import com.studentbudget.dao.*;
+import com.studentbudget.dao.impl.*;
+import com.studentbudget.service.*;
+import com.studentbudget.service.impl.*;
 import com.studentbudget.util.DatabaseInitializer;
 import com.studentbudget.util.HibernateTransactionManager;
 import org.hibernate.SessionFactory;
@@ -24,6 +18,7 @@ public class AppConfig {
     private final HibernateTransactionManager transactionManager;
     private final TransactionService transactionService;
     private final CategoryService categoryService;
+    private final AuthService authService;
     private final SettingsService settingsService;
 
     private AppConfig() {
@@ -41,29 +36,23 @@ public class AppConfig {
             // Initialize DAOs
             TransactionDao transactionDao = new TransactionDaoImpl(sessionFactory);
             CategoryDao categoryDao = new CategoryDaoImpl(sessionFactory);
+            UserDao userDao = new UserDaoImpl(sessionFactory);
 
             // Initialize Services
-            this.transactionService = new TransactionServiceImpl(transactionDao, transactionManager);
+            this.authService = new AuthServiceImpl(userDao, transactionManager);
+            this.transactionService = new TransactionServiceImpl(transactionDao, transactionManager, authService);
             this.categoryService = new CategoryServiceImpl(categoryDao, transactionDao, transactionManager);
             this.settingsService = new SettingsServiceImpl();
             
-            // Initialize database with default data
+            // Initialize database with default data if needed
             logger.info("Starting database initialization");
             DatabaseInitializer databaseInitializer = new DatabaseInitializer(categoryService);
-            transactionManager.executeInTransactionWithoutResult(session -> {
-                try {
-                    databaseInitializer.initializeCategories();
-                    logger.info("Database initialization completed successfully");
-                } catch (Exception e) {
-                    logger.error("Failed to initialize database: {}", e.getMessage(), e);
-                    throw new RuntimeException("Database initialization failed", e);
-                }
-            });
+            databaseInitializer.initialize();
             
             logger.info("Application configuration initialized successfully");
         } catch (Exception e) {
             logger.error("Failed to initialize application configuration: {}", e.getMessage(), e);
-            throw new RuntimeException("Failed to initialize application", e);
+            throw new RuntimeException("Failed to initialize application configuration", e);
         }
     }
 
@@ -80,6 +69,10 @@ public class AppConfig {
 
     public CategoryService getCategoryService() {
         return categoryService;
+    }
+
+    public AuthService getAuthService() {
+        return authService;
     }
 
     public SettingsService getSettingsService() {

@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<VBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      spacing="10" styleClass="root">
+
+    <padding>
+        <Insets top="20" right="20" bottom="20" left="20"/>
+    </padding>
+
+    <Label text="Управление Бюджетом Студента" styleClass="title-label"/>
+
+    <TabPane fx:id="loginTabPane">
+        <Tab fx:id="loginTab" text="Вход" closable="false">
+            <VBox spacing="15" styleClass="auth-form">
+                <TextField fx:id="usernameField" promptText="Имя пользователя"/>
+                <PasswordField fx:id="passwordField" promptText="Пароль"/>
+                <Button text="Войти" onAction="#handleLogin" defaultButton="true" styleClass="auth-button"/>
+            </VBox>
+        </Tab>
+        
+        <Tab fx:id="registerTab" text="Регистрация" closable="false">
+            <VBox spacing="15" styleClass="auth-form">
+                <TextField fx:id="regUsernameField" promptText="Имя пользователя"/>
+                <TextField fx:id="firstNameField" promptText="Имя"/>
+                <TextField fx:id="lastNameField" promptText="Фамилия"/>
+                <TextField fx:id="emailField" promptText="Email"/>
+                <PasswordField fx:id="regPasswordField" promptText="Пароль"/>
+                <PasswordField fx:id="regConfirmPasswordField" promptText="Подтвердите пароль"/>
+                <ComboBox fx:id="roleComboBox" promptText="Выберите роль"/>
+                <Button text="Зарегистрироваться" onAction="#handleRegister" styleClass="auth-button"/>
+            </VBox>
+        </Tab>
+    </TabPane>
+</VBox> 

@@ -5,7 +5,10 @@ import com.studentbudget.model.Transaction;
 import com.studentbudget.model.TransactionType;
 import com.studentbudget.model.Category;
 import com.studentbudget.model.TransactionStatus;
+import com.studentbudget.model.User;
+import com.studentbudget.model.UserRole;
 import com.studentbudget.service.TransactionService;
+import com.studentbudget.service.AuthService;
 import com.studentbudget.util.HibernateTransactionManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,10 +23,12 @@ public class TransactionServiceImpl implements TransactionService {
     private static final Logger logger = LoggerFactory.getLogger(TransactionServiceImpl.class);
     private final TransactionDao transactionDao;
     private final HibernateTransactionManager transactionManager;
+    private final AuthService authService;
 
-    public TransactionServiceImpl(TransactionDao transactionDao, HibernateTransactionManager transactionManager) {
+    public TransactionServiceImpl(TransactionDao transactionDao, HibernateTransactionManager transactionManager, AuthService authService) {
         this.transactionDao = transactionDao;
         this.transactionManager = transactionManager;
+        this.authService = authService;
     }
 
     @Override
@@ -32,6 +37,17 @@ public class TransactionServiceImpl implements TransactionService {
         if (transaction.getDate() == null) {
             transaction.setDate(LocalDateTime.now());
         }
+        
+        // Устанавливаем текущего пользователя, если не задан
+        if (transaction.getUser() == null) {
+            transaction.setUser(authService.getCurrentUser());
+        }
+        
+        // Проверяем права доступа
+        if (!isAdminOrOwner(transaction.getUser())) {
+            throw new SecurityException("Недостаточно прав для создания транзакции от имени другого пользователя");
+        }
+        
         return transactionManager.executeInTransaction(session -> transactionDao.save(transaction));
     }
 
@@ -39,9 +55,14 @@ public class TransactionServiceImpl implements TransactionService {
     public void updateTransaction(Transaction transaction) {
         logger.debug("Updating transaction with id {}: {}", transaction.getId(), transaction);
         transactionManager.executeInTransactionWithoutResult(session -> {
-            if (transactionDao.findById(transaction.getId()).isEmpty()) {
-                throw new IllegalArgumentException("Transaction not found with id: " + transaction.getId());
+            Transaction existing = transactionDao.findById(transaction.getId())
+                .orElseThrow(() -> new IllegalArgumentException("Transaction not found with id: " + transaction.getId()));
+            
+            // Проверяем права доступа
+            if (!isAdminOrOwner(existing.getUser())) {
+                throw new SecurityException("Недостаточно прав для редактирования этой транзакции");
             }
+            
             transactionDao.update(transaction);
         });
     }
@@ -49,69 +70,160 @@ public class TransactionServiceImpl implements TransactionService {
     @Override
     public void deleteTransaction(Long id) {
         logger.debug("Deleting transaction with id: {}", id);
-        transactionManager.executeInTransactionWithoutResult(session -> transactionDao.deleteById(id));
+        transactionManager.executeInTransactionWithoutResult(session -> {
+            Transaction existing = transactionDao.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Transaction not found with id: " + id));
+            
+            // Проверяем права доступа
+            if (!isAdminOrOwner(existing.getUser())) {
+                throw new SecurityException("Недостаточно прав для удаления этой транзакции");
+            }
+            
+            transactionDao.deleteById(id);
+        });
     }
 
     @Override
     public Transaction getTransactionById(Long id) {
         logger.debug("Fetching transaction with id: {}", id);
-        return transactionManager.executeInTransaction(session -> 
-            transactionDao.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Transaction not found with id: " + id))
-        );
+        return transactionManager.executeInTransaction(session -> {
+            Transaction transaction = transactionDao.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Transaction not found with id: " + id));
+            
+            // Проверяем права доступа
+            if (!isAdminOrOwner(transaction.getUser())) {
+                throw new SecurityException("Недостаточно прав для просмотра этой транзакции");
+            }
+            
+            return transaction;
+        });
     }
 
     @Override
     public List<Transaction> getAllTransactions() {
         logger.debug("Fetching all transactions");
+        return isAdmin() ? getAllUsersTransactions() : getCurrentUserTransactions();
+    }
+
+    @Override
+    public List<Transaction> getCurrentUserTransactions() {
+        logger.debug("Fetching current user transactions");
+        User currentUser = authService.getCurrentUser();
+        return transactionManager.executeInTransaction(session -> 
+            transactionDao.findAll().stream()
+                .filter(t -> t.getUser().getId().equals(currentUser.getId()))
+                .collect(Collectors.toList())
+        );
+    }
+
+    @Override
+    public List<Transaction> getCurrentUserTransactionsByType(TransactionType type) {
+        logger.debug("Fetching current user transactions by type: {}", type);
+        User currentUser = authService.getCurrentUser();
+        return transactionManager.executeInTransaction(session -> 
+            transactionDao.findByType(type).stream()
+                .filter(t -> t.getUser().getId().equals(currentUser.getId()))
+                .collect(Collectors.toList())
+        );
+    }
+
+    @Override
+    public List<Transaction> getCurrentUserTransactionsByCategory(Category category) {
+        logger.debug("Fetching current user transactions by category: {}", category.getName());
+        User currentUser = authService.getCurrentUser();
+        return transactionManager.executeInTransaction(session -> 
+            transactionDao.findByCategory(category).stream()
+                .filter(t -> t.getUser().getId().equals(currentUser.getId()))
+                .collect(Collectors.toList())
+        );
+    }
+
+    @Override
+    public List<Transaction> getCurrentUserTransactionsByDateRange(LocalDateTime start, LocalDateTime end) {
+        logger.debug("Fetching current user transactions between {} and {}", start, end);
+        User currentUser = authService.getCurrentUser();
+        return transactionManager.executeInTransaction(session -> 
+            transactionDao.findByDateRange(start, end).stream()
+                .filter(t -> t.getUser().getId().equals(currentUser.getId()))
+                .collect(Collectors.toList())
+        );
+    }
+
+    @Override
+    public List<Transaction> getCurrentUserTransactionsByDateRange(LocalDate startDate, LocalDate endDate) {
+        LocalDateTime start = startDate.atStartOfDay();
+        LocalDateTime end = endDate.atTime(23, 59, 59);
+        return getCurrentUserTransactionsByDateRange(start, end);
+    }
+
+    @Override
+    public List<Transaction> getCurrentUserTransactionsByStatus(String status) {
+        logger.debug("Fetching current user transactions by status: {}", status);
+        User currentUser = authService.getCurrentUser();
+        return transactionManager.executeInTransaction(session -> 
+            transactionDao.findByStatus(status).stream()
+                .filter(t -> t.getUser().getId().equals(currentUser.getId()))
+                .collect(Collectors.toList())
+        );
+    }
+
+    @Override
+    public List<Transaction> getAllUsersTransactions() {
+        logger.debug("Fetching all users transactions");
+        if (!isAdmin()) {
+            throw new SecurityException("Только администратор может просматривать все транзакции");
+        }
         return transactionManager.executeInTransaction(session -> transactionDao.findAll());
     }
 
     @Override
-    public List<Transaction> getTransactionsByType(TransactionType type) {
-        logger.debug("Fetching transactions by type: {}", type);
-        return transactionManager.executeInTransaction(session -> transactionDao.findByType(type));
-    }
-
-    @Override
-    public List<Transaction> getTransactionsByCategory(Category category) {
-        logger.debug("Fetching transactions for category: {}", category.getName());
-        return transactionManager.executeInTransaction(session -> transactionDao.findByCategory(category));
-    }
-
-    @Override
-    public List<Transaction> getTransactionsByDateRange(LocalDateTime start, LocalDateTime end) {
-        logger.debug("Fetching transactions between {} and {}", start, end);
-        return transactionManager.executeInTransaction(session -> transactionDao.findByDateRange(start, end));
-    }
-
-    @Override
-    public List<Transaction> getTransactionsByDateRange(LocalDate startDate, LocalDate endDate) {
-        logger.debug("Fetching transactions between dates {} and {}", startDate, endDate);
-        LocalDateTime start = startDate.atStartOfDay();
-        LocalDateTime end = endDate.atTime(23, 59, 59);
-        return getTransactionsByDateRange(start, end);
-    }
-
-    @Override
-    public List<Transaction> searchTransactions(String searchTerm) {
-        logger.debug("Searching transactions with query: {}", searchTerm);
-        return transactionManager.executeInTransaction(session -> transactionDao.searchByDescription(searchTerm));
-    }
-
-    @Override
-    public List<Transaction> searchTransactions(String query, Category category, 
-                                              LocalDate startDate, LocalDate endDate) {
-        logger.debug("Searching transactions with query: {}, category: {}, dateRange: {} - {}", 
-                    query, category, startDate, endDate);
-        
+    public List<Transaction> getTransactionsByUser(User user) {
+        logger.debug("Fetching transactions for user: {}", user.getUsername());
+        if (!isAdmin()) {
+            throw new SecurityException("Только администратор может просматривать транзакции других пользователей");
+        }
         return transactionManager.executeInTransaction(session -> 
-            getAllTransactions().stream()
-                .filter(t -> (query == null || query.isEmpty() || 
-                            t.getDescription().toLowerCase().contains(query.toLowerCase())))
-                .filter(t -> (category == null || t.getCategory().equals(category)))
-                .filter(t -> (startDate == null || !t.getDate().toLocalDate().isBefore(startDate)))
-                .filter(t -> (endDate == null || !t.getDate().toLocalDate().isAfter(endDate)))
+            transactionDao.findAll().stream()
+                .filter(t -> t.getUser().getId().equals(user.getId()))
+                .collect(Collectors.toList())
+        );
+    }
+
+    @Override
+    public List<Transaction> getTransactionsByUserAndType(User user, TransactionType type) {
+        logger.debug("Fetching transactions for user {} by type: {}", user.getUsername(), type);
+        if (!isAdmin()) {
+            throw new SecurityException("Только администратор может просматривать транзакции других пользователей");
+        }
+        return transactionManager.executeInTransaction(session -> 
+            transactionDao.findByType(type).stream()
+                .filter(t -> t.getUser().getId().equals(user.getId()))
+                .collect(Collectors.toList())
+        );
+    }
+
+    @Override
+    public List<Transaction> getTransactionsByUserAndCategory(User user, Category category) {
+        logger.debug("Fetching transactions for user {} by category: {}", user.getUsername(), category.getName());
+        if (!isAdmin()) {
+            throw new SecurityException("Только администратор может просматривать транзакции других пользователей");
+        }
+        return transactionManager.executeInTransaction(session -> 
+            transactionDao.findByCategory(category).stream()
+                .filter(t -> t.getUser().getId().equals(user.getId()))
+                .collect(Collectors.toList())
+        );
+    }
+
+    @Override
+    public List<Transaction> getTransactionsByUserAndDateRange(User user, LocalDateTime start, LocalDateTime end) {
+        logger.debug("Fetching transactions for user {} between {} and {}", user.getUsername(), start, end);
+        if (!isAdmin()) {
+            throw new SecurityException("Только администратор может просматривать транзакции других пользователей");
+        }
+        return transactionManager.executeInTransaction(session -> 
+            transactionDao.findByDateRange(start, end).stream()
+                .filter(t -> t.getUser().getId().equals(user.getId()))
                 .collect(Collectors.toList())
         );
     }
@@ -119,46 +231,106 @@ public class TransactionServiceImpl implements TransactionService {
     @Override
     public BigDecimal getTotalIncome() {
         logger.debug("Calculating total income");
-        return transactionManager.executeInTransaction(session -> {
-            List<Transaction> incomeTransactions = transactionDao.findByType(TransactionType.INCOME);
-            return incomeTransactions.stream()
-                .map(Transaction::getAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-        });
+        List<Transaction> transactions = isAdmin() ? getAllUsersTransactions() : getCurrentUserTransactions();
+        return transactions.stream()
+            .filter(t -> t.getType() == TransactionType.INCOME)
+            .map(Transaction::getAmount)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     @Override
     public BigDecimal getTotalExpenses() {
         logger.debug("Calculating total expenses");
-        return transactionManager.executeInTransaction(session -> {
-            List<Transaction> expenseTransactions = transactionDao.findByType(TransactionType.EXPENSE);
-            return expenseTransactions.stream()
-                .map(Transaction::getAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-        });
+        List<Transaction> transactions = isAdmin() ? getAllUsersTransactions() : getCurrentUserTransactions();
+        return transactions.stream()
+            .filter(t -> t.getType() == TransactionType.EXPENSE)
+            .map(Transaction::getAmount)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    @Override
+    public Map<Category, BigDecimal> getExpensesByCategory() {
+        logger.debug("Calculating expenses by category");
+        List<Transaction> transactions = isAdmin() ? getAllUsersTransactions() : getCurrentUserTransactions();
+        return transactions.stream()
+            .filter(t -> t.getType() == TransactionType.EXPENSE)
+            .collect(Collectors.groupingBy(
+                Transaction::getCategory,
+                Collectors.reducing(
+                    BigDecimal.ZERO,
+                    Transaction::getAmount,
+                    BigDecimal::add
+                )
+            ));
+    }
+
+    @Override
+    public Map<User, BigDecimal> getTotalIncomeByUser() {
+        logger.debug("Calculating total income by user");
+        if (!isAdmin()) {
+            throw new SecurityException("Только администратор может просматривать статистику по всем пользователям");
+        }
+        return transactionManager.executeInTransaction(session -> 
+            transactionDao.findAll().stream()
+                .filter(t -> t.getType() == TransactionType.INCOME)
+                .collect(Collectors.groupingBy(
+                    Transaction::getUser,
+                    Collectors.reducing(
+                        BigDecimal.ZERO,
+                        Transaction::getAmount,
+                        BigDecimal::add
+                    )
+                ))
+        );
+    }
+
+    @Override
+    public Map<User, BigDecimal> getTotalExpensesByUser() {
+        logger.debug("Calculating total expenses by user");
+        if (!isAdmin()) {
+            throw new SecurityException("Только администратор может просматривать статистику по всем пользователям");
+        }
+        return transactionManager.executeInTransaction(session -> 
+            transactionDao.findAll().stream()
+                .filter(t -> t.getType() == TransactionType.EXPENSE)
+                .collect(Collectors.groupingBy(
+                    Transaction::getUser,
+                    Collectors.reducing(
+                        BigDecimal.ZERO,
+                        Transaction::getAmount,
+                        BigDecimal::add
+                    )
+                ))
+        );
+    }
+
+    @Override
+    public Map<User, Map<Category, BigDecimal>> getExpensesByCategoryAndUser() {
+        logger.debug("Calculating expenses by category and user");
+        if (!isAdmin()) {
+            throw new SecurityException("Только администратор может просматривать статистику по всем пользователям");
+        }
+        return transactionManager.executeInTransaction(session -> 
+            transactionDao.findAll().stream()
+                .filter(t -> t.getType() == TransactionType.EXPENSE)
+                .collect(Collectors.groupingBy(
+                    Transaction::getUser,
+                    Collectors.groupingBy(
+                        Transaction::getCategory,
+                        Collectors.reducing(
+                            BigDecimal.ZERO,
+                            Transaction::getAmount,
+                            BigDecimal::add
+                        )
+                    )
+                ))
+        );
     }
 
     @Override
     public BigDecimal getCurrentBalance() {
         logger.debug("Calculating current balance");
         return getTotalIncome().subtract(getTotalExpenses());
-    }
-
-    @Override
-    public Map<Category, BigDecimal> getExpensesByCategory() {
-        logger.debug("Calculating expenses by category");
-        return transactionManager.executeInTransaction(session -> {
-            List<Transaction> expenseTransactions = transactionDao.findByType(TransactionType.EXPENSE);
-            return expenseTransactions.stream()
-                .collect(Collectors.groupingBy(
-                    Transaction::getCategory,
-                    Collectors.reducing(
-                        BigDecimal.ZERO,
-                        Transaction::getAmount,
-                        BigDecimal::add
-                    )
-                ));
-        });
     }
 
     @Override
@@ -223,6 +395,58 @@ public class TransactionServiceImpl implements TransactionService {
             logger.debug("Final distribution: {}", distribution);
             return distribution;
         });
+    }
+
+    private boolean isAdmin() {
+        return authService.getCurrentUser().getRole() == UserRole.ADMIN;
+    }
+
+    private boolean isAdminOrOwner(User user) {
+        User currentUser = authService.getCurrentUser();
+        return currentUser.getRole() == UserRole.ADMIN || 
+               currentUser.getId().equals(user.getId());
+    }
+
+    // Остальные методы остаются без изменений
+    @Override
+    public List<Transaction> searchTransactions(String searchTerm) {
+        List<Transaction> results = transactionManager.executeInTransaction(session -> 
+            transactionDao.searchByDescription(searchTerm)
+        );
+        
+        // Фильтруем результаты в зависимости от прав доступа
+        if (!isAdmin()) {
+            User currentUser = authService.getCurrentUser();
+            results = results.stream()
+                .filter(t -> t.getUser().getId().equals(currentUser.getId()))
+                .collect(Collectors.toList());
+        }
+        
+        return results;
+    }
+
+    @Override
+    public List<Transaction> searchTransactions(String query, Category category, 
+                                              LocalDate startDate, LocalDate endDate) {
+        List<Transaction> results = transactionManager.executeInTransaction(session -> 
+            getAllTransactions().stream()
+                .filter(t -> (query == null || query.isEmpty() || 
+                            t.getDescription().toLowerCase().contains(query.toLowerCase())))
+                .filter(t -> (category == null || t.getCategory().equals(category)))
+                .filter(t -> (startDate == null || !t.getDate().toLocalDate().isBefore(startDate)))
+                .filter(t -> (endDate == null || !t.getDate().toLocalDate().isAfter(endDate)))
+                .collect(Collectors.toList())
+        );
+        
+        // Фильтруем результаты в зависимости от прав доступа
+        if (!isAdmin()) {
+            User currentUser = authService.getCurrentUser();
+            results = results.stream()
+                .filter(t -> t.getUser().getId().equals(currentUser.getId()))
+                .collect(Collectors.toList());
+        }
+        
+        return results;
     }
 
     @Override

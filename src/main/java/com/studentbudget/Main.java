@@ -1,50 +1,55 @@
 package com.studentbudget;
 
 import com.studentbudget.config.AppConfig;
-import com.studentbudget.controller.MainController;
+import com.studentbudget.controller.LoginController;
 import javafx.application.Application;
-import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
-import java.io.IOException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Main extends Application {
-    @Override
-    public void start(Stage stage) throws IOException {
-        FXMLLoader fxmlLoader = new FXMLLoader(Main.class.getResource("/fxml/main-view.fxml"));
-        
-        // Set controller factory to use our services
-        fxmlLoader.setControllerFactory(controllerClass -> {
-            if (controllerClass == MainController.class) {
-                return new MainController(
-                    AppConfig.getInstance().getTransactionService(),
-                    AppConfig.getInstance().getCategoryService()
-                );
-            }
-            try {
-                return controllerClass.getDeclaredConstructor().newInstance();
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        });
+    private static final Logger logger = LoggerFactory.getLogger(Main.class);
 
-        Scene scene = new Scene(fxmlLoader.load(), 1024, 768);
-        scene.getStylesheets().add(getClass().getResource("/css/styles.css").toExternalForm());
-        
-        stage.setTitle("Student Budget Manager");
-        stage.setScene(scene);
-        stage.show();
+    @Override
+    public void start(Stage primaryStage) {
+        try {
+            // Инициализация конфигурации
+            AppConfig appConfig = AppConfig.getInstance();
+            
+            // Загрузка FXML для окна авторизации
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/login-view.fxml"));
+            
+            // Создание контроллера с внедрением зависимостей
+            LoginController controller = new LoginController(
+                appConfig.getAuthService(),
+                appConfig.getTransactionService(),
+                appConfig.getCategoryService()
+            );
+            loader.setController(controller);
+            
+            Scene scene = new Scene(loader.load());
+            scene.getStylesheets().add(getClass().getResource("/css/styles.css").toExternalForm());
+            
+            primaryStage.setTitle("Student Budget Manager - Login");
+            primaryStage.setScene(scene);
+            primaryStage.show();
+            
+        } catch (Exception e) {
+            logger.error("Failed to start application", e);
+            e.printStackTrace();
+            System.exit(1);
+        }
     }
 
     @Override
     public void stop() {
-        // Cleanup resources
+        // Закрытие ресурсов при завершении приложения
         AppConfig.getInstance().shutdown();
-        Platform.exit();
     }
 
     public static void main(String[] args) {
-        launch();
+        launch(args);
     }
 } 
