@@ -105,14 +105,13 @@ public class CategoryServiceImpl implements CategoryService {
             Category oldCategory = categoryDao.findById(categoryId)
                 .orElseThrow(() -> new IllegalArgumentException("Category not found with id: " + categoryId));
             
-            // Перемещаем транзакции в новую категорию
             List<Transaction> transactions = transactionDao.findByCategory(oldCategory);
             for (Transaction transaction : transactions) {
                 transaction.setCategory(newCategory);
                 transactionDao.update(transaction);
             }
             
-            // Удаляем старую категорию
+
             categoryDao.deleteById(categoryId);
         });
     }

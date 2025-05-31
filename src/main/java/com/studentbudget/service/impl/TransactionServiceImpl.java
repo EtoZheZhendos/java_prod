@@ -38,12 +38,10 @@ public class TransactionServiceImpl implements TransactionService {
             transaction.setDate(LocalDateTime.now());
         }
         
-        // Устанавливаем текущего пользователя, если не задан
         if (transaction.getUser() == null) {
             transaction.setUser(authService.getCurrentUser());
         }
         
-        // Проверяем права доступа
         if (!isAdminOrOwner(transaction.getUser())) {
             throw new SecurityException("Недостаточно прав для создания транзакции от имени другого пользователя");
         }
@@ -58,7 +56,6 @@ public class TransactionServiceImpl implements TransactionService {
             Transaction existing = transactionDao.findById(transaction.getId())
                 .orElseThrow(() -> new IllegalArgumentException("Transaction not found with id: " + transaction.getId()));
             
-            // Проверяем права доступа
             if (!isAdminOrOwner(existing.getUser())) {
                 throw new SecurityException("Недостаточно прав для редактирования этой транзакции");
             }
@@ -74,7 +71,6 @@ public class TransactionServiceImpl implements TransactionService {
             Transaction existing = transactionDao.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Transaction not found with id: " + id));
             
-            // Проверяем права доступа
             if (!isAdminOrOwner(existing.getUser())) {
                 throw new SecurityException("Недостаточно прав для удаления этой транзакции");
             }
@@ -90,7 +86,6 @@ public class TransactionServiceImpl implements TransactionService {
             Transaction transaction = transactionDao.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Transaction not found with id: " + id));
             
-            // Проверяем права доступа
             if (!isAdminOrOwner(transaction.getUser())) {
                 throw new SecurityException("Недостаточно прав для просмотра этой транзакции");
             }
@@ -337,22 +332,19 @@ public class TransactionServiceImpl implements TransactionService {
     public Map<Category, Double> getExpenseDistribution() {
         logger.debug("Calculating expense distribution");
         return transactionManager.executeInTransaction(session -> {
-            // Get all expense transactions first
+
             List<Transaction> allExpenses = transactionDao.findByType(TransactionType.EXPENSE);
             logger.debug("Total expense transactions found: {}", allExpenses.size());
             
-            // Log each expense transaction for debugging
             allExpenses.forEach(t -> logger.debug("Expense transaction: amount={}, category={}, status={}", 
                 t.getAmount(), t.getCategory().getName(), t.getStatus()));
             
-            // Filter active transactions
             List<Transaction> expenseTransactions = allExpenses.stream()
                 .filter(t -> t.getStatus() == TransactionStatus.ACTIVE)
                 .toList();
             
             logger.debug("Active expense transactions after filtering: {}", expenseTransactions.size());
             
-            // Log each active expense transaction
             expenseTransactions.forEach(t -> logger.debug("Active expense: amount={}, category={}", 
                 t.getAmount(), t.getCategory().getName()));
             
@@ -407,14 +399,12 @@ public class TransactionServiceImpl implements TransactionService {
                currentUser.getId().equals(user.getId());
     }
 
-    // Остальные методы остаются без изменений
     @Override
     public List<Transaction> searchTransactions(String searchTerm) {
         List<Transaction> results = transactionManager.executeInTransaction(session -> 
             transactionDao.searchByDescription(searchTerm)
         );
         
-        // Фильтруем результаты в зависимости от прав доступа
         if (!isAdmin()) {
             User currentUser = authService.getCurrentUser();
             results = results.stream()
@@ -438,7 +428,6 @@ public class TransactionServiceImpl implements TransactionService {
                 .collect(Collectors.toList())
         );
         
-        // Фильтруем результаты в зависимости от прав доступа
         if (!isAdmin()) {
             User currentUser = authService.getCurrentUser();
             results = results.stream()

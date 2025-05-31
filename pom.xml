@@ -88,6 +88,10 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.11.0</version>
+                <configuration>
+                    <source>${maven.compiler.source}</source>
+                    <target>${maven.compiler.target}</target>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.openjfx</groupId>
@@ -98,16 +102,15 @@
                     <options>
                         <option>--add-opens</option>
                         <option>java.base/java.lang=ALL-UNNAMED</option>
-                        <option>--module-path</option>
-                        <option>${project.build.directory}/classes</option>
-                        <option>--add-modules</option>
-                        <option>javafx.controls,javafx.fxml,javafx.graphics</option>
+                        <option>--add-opens</option>
+                        <option>java.base/java.util=ALL-UNNAMED</option>
+                        <option>--add-opens</option>
+                        <option>java.base/java.lang.reflect=ALL-UNNAMED</option>
+                        <option>--add-opens</option>
+                        <option>java.base/java.text=ALL-UNNAMED</option>
+                        <option>--add-opens</option>
+                        <option>java.desktop/java.awt.font=ALL-UNNAMED</option>
                     </options>
-                    <launcher>student-budget</launcher>
-                    <jlinkImageName>student-budget</jlinkImageName>
-                    <noManPages>true</noManPages>
-                    <stripDebug>true</stripDebug>
-                    <noHeaderFiles>true</noHeaderFiles>
                 </configuration>
             </plugin>
         </plugins>

@@ -84,7 +84,6 @@ public class SettingsServiceImpl implements SettingsService {
             }
         } else {
             logger.debug("Settings file not found, using defaults");
-            // Set default settings
             settings.put("language", "ru_RU");
             settings.put("theme", "dark");
             settings.put("currency", "RUB");

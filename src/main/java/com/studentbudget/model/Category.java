@@ -19,7 +19,6 @@ public class Category {
     @OneToMany(mappedBy = "category", cascade = CascadeType.ALL)
     private List<Transaction> transactions = new ArrayList<>();
 
-    // Constructors
     public Category() {}
 
     public Category(String name, String description) {
@@ -27,7 +26,6 @@ public class Category {
         this.description = description;
     }
 
-    // Getters and Setters
     public Long getId() {
         return id;
     }

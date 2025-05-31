@@ -35,7 +35,6 @@ public class Transaction {
     @Column(nullable = false)
     private TransactionStatus status = TransactionStatus.ACTIVE;
 
-    // Constructors
     public Transaction() {}
 
     public Transaction(BigDecimal amount, TransactionType type, Category category, String description, User user) {
@@ -47,7 +46,6 @@ public class Transaction {
         this.user = user;
     }
 
-    // Getters and Setters
     public Long getId() {
         return id;
     }

@@ -40,7 +40,6 @@ public class User {
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Transaction> transactions = new ArrayList<>();
 
-    // Конструкторы
     public User() {
         this.createdAt = LocalDateTime.now();
     }
@@ -55,7 +54,6 @@ public class User {
         this.role = role;
     }
 
-    // Геттеры и сеттеры
     public Long getId() {
         return id;
     }

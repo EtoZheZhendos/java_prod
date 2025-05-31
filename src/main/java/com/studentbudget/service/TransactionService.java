@@ -17,7 +17,6 @@ public interface TransactionService {
     Transaction getTransactionById(Long id);
     List<Transaction> getAllTransactions();
     
-    // Методы для работы с транзакциями текущего пользователя
     List<Transaction> getCurrentUserTransactions();
     List<Transaction> getCurrentUserTransactionsByType(TransactionType type);
     List<Transaction> getCurrentUserTransactionsByCategory(Category category);
@@ -25,7 +24,7 @@ public interface TransactionService {
     List<Transaction> getCurrentUserTransactionsByDateRange(LocalDate startDate, LocalDate endDate);
     List<Transaction> getCurrentUserTransactionsByStatus(String status);
     
-    // Методы для администратора
+
     List<Transaction> getAllUsersTransactions();
     List<Transaction> getTransactionsByUser(User user);
     List<Transaction> getTransactionsByUserAndType(User user, TransactionType type);
@@ -36,16 +35,13 @@ public interface TransactionService {
     List<Transaction> searchTransactions(String query, Category category, 
                                       LocalDate startDate, LocalDate endDate);
     
-    // Методы для получения финансовой статистики
     BigDecimal getTotalIncome();
     BigDecimal getTotalExpenses();
     BigDecimal getCurrentBalance();
     
-    // Методы для получения статистики по категориям
     Map<Category, BigDecimal> getExpensesByCategory();
     Map<Category, Double> getExpenseDistribution();
     
-    // Методы для администратора по работе со статистикой
     Map<User, BigDecimal> getTotalIncomeByUser();
     Map<User, BigDecimal> getTotalExpensesByUser();
     Map<User, Map<Category, BigDecimal>> getExpensesByCategoryAndUser();

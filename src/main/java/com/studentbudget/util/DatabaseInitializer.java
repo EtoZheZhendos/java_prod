@@ -2,6 +2,9 @@ package com.studentbudget.util;
 
 import com.studentbudget.model.Category;
 import com.studentbudget.service.CategoryService;
+import org.hibernate.Session;
+import org.hibernate.SessionFactory;
+import org.hibernate.Transaction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -11,18 +14,25 @@ import java.util.List;
 public class DatabaseInitializer {
     private static final Logger logger = LoggerFactory.getLogger(DatabaseInitializer.class);
     private final CategoryService categoryService;
+    private final SessionFactory sessionFactory;
 
-    public DatabaseInitializer(CategoryService categoryService) {
+    public DatabaseInitializer(CategoryService categoryService, SessionFactory sessionFactory) {
         this.categoryService = categoryService;
+        this.sessionFactory = sessionFactory;
     }
 
     public void initialize() {
-        try {
-            initializeCategories();
-            logger.info("Database initialization completed successfully");
-        } catch (Exception e) {
-            logger.error("Failed to initialize database", e);
-            throw new RuntimeException("Database initialization failed", e);
+        try (Session session = sessionFactory.openSession()) {
+            Transaction transaction = session.beginTransaction();
+            try {
+                initializeCategories();
+                transaction.commit();
+                logger.info("Database initialized successfully");
+            } catch (Exception e) {
+                transaction.rollback();
+                logger.error("Error initializing database: ", e);
+                throw e;
+            }
         }
     }
 

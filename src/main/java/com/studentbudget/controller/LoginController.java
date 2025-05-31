@@ -1,10 +1,10 @@
 package com.studentbudget.controller;
 
+import com.studentbudget.service.AuthService;
+import com.studentbudget.service.CategoryService;
+import com.studentbudget.service.TransactionService;
 import com.studentbudget.model.User;
 import com.studentbudget.model.UserRole;
-import com.studentbudget.service.AuthService;
-import com.studentbudget.service.TransactionService;
-import com.studentbudget.service.CategoryService;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
@@ -12,6 +12,8 @@ import javafx.scene.control.*;
 import javafx.stage.Stage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import java.io.IOException;
+import javafx.collections.FXCollections;
 
 public class LoginController {
     private static final Logger logger = LoggerFactory.getLogger(LoginController.class);
@@ -24,11 +26,11 @@ public class LoginController {
     @FXML private Tab loginTab;
     @FXML private Tab registerTab;
     
-    // Login fields
     @FXML private TextField usernameField;
     @FXML private PasswordField passwordField;
+    @FXML private Label errorLabel;
     
-    // Registration fields
+   
     @FXML private TextField regUsernameField;
     @FXML private PasswordField regPasswordField;
     @FXML private PasswordField regConfirmPasswordField;
@@ -36,6 +38,8 @@ public class LoginController {
     @FXML private TextField firstNameField;
     @FXML private TextField lastNameField;
     @FXML private ComboBox<UserRole> roleComboBox;
+    
+    @FXML private ToggleButton themeToggle;
 
     public LoginController(AuthService authService, TransactionService transactionService, CategoryService categoryService) {
         this.authService = authService;
@@ -45,7 +49,9 @@ public class LoginController {
 
     @FXML
     public void initialize() {
-        roleComboBox.setItems(javafx.collections.FXCollections.observableArrayList(UserRole.values()));
+        themeToggle.setOnAction(event -> toggleTheme());
+        errorLabel.setVisible(false);
+        roleComboBox.setItems(FXCollections.observableArrayList(UserRole.values()));
         roleComboBox.setValue(UserRole.STUDENT);
     }
 
@@ -55,7 +61,7 @@ public class LoginController {
         String password = passwordField.getText();
 
         if (username.isEmpty() || password.isEmpty()) {
-            showError("Ошибка входа", "Пожалуйста, заполните все поля");
+            showError("Пожалуйста, заполните все поля");
             return;
         }
 
@@ -65,7 +71,7 @@ public class LoginController {
             showMainWindow();
         } catch (Exception e) {
             logger.error("Login failed for user {}: {}", username, e.getMessage());
-            showError("Ошибка входа", e.getMessage());
+            showError(e.getMessage());
         }
     }
 
@@ -82,12 +88,12 @@ public class LoginController {
         // Validation
         if (username.isEmpty() || password.isEmpty() || email.isEmpty() || 
             firstName.isEmpty() || lastName.isEmpty()) {
-            showError("Ошибка регистрации", "Пожалуйста, заполните все обязательные поля");
+            showError("Пожалуйста, заполните все обязательные поля");
             return;
         }
 
         if (!password.equals(confirmPassword)) {
-            showError("Ошибка регистрации", "Пароли не совпадают");
+            showError("Пароли не совпадают");
             return;
         }
 
@@ -105,7 +111,7 @@ public class LoginController {
             
         } catch (Exception e) {
             logger.error("Registration failed: {}", e.getMessage());
-            showError("Ошибка регистрации", e.getMessage());
+            showError(e.getMessage());
         }
     }
 
@@ -116,17 +122,30 @@ public class LoginController {
             loader.setController(controller);
             
             Scene scene = new Scene(loader.load());
-            scene.getStylesheets().add(getClass().getResource("/css/styles.css").toExternalForm());
+            scene.getStylesheets().add(getClass().getResource("/css/dark-theme.css").toExternalForm());
             
             Stage currentStage = (Stage) usernameField.getScene().getWindow();
             currentStage.setScene(scene);
             currentStage.setTitle("Student Budget Manager");
             currentStage.setMaximized(true);
             
-        } catch (Exception e) {
-            logger.error("Error loading main window", e);
-            showError("Ошибка", "Не удалось загрузить главное окно: " + e.getMessage());
+        } catch (IOException e) {
+            logger.error("Error loading main window: ", e);
+            showError("Не удалось загрузить главное окно: " + e.getMessage());
         }
+    }
+
+    private void showError(String message) {
+        errorLabel.setText(message);
+        errorLabel.setVisible(true);
+    }
+
+    private void showInfo(String title, String content) {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(content);
+        alert.showAndWait();
     }
 
     private void clearRegistrationFields() {
@@ -139,19 +158,17 @@ public class LoginController {
         roleComboBox.setValue(UserRole.STUDENT);
     }
 
-    private void showError(String title, String content) {
-        Alert alert = new Alert(Alert.AlertType.ERROR);
-        alert.setTitle(title);
-        alert.setHeaderText(null);
-        alert.setContentText(content);
-        alert.showAndWait();
-    }
-
-    private void showInfo(String title, String content) {
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        alert.setTitle(title);
-        alert.setHeaderText(null);
-        alert.setContentText(content);
-        alert.showAndWait();
+    private void toggleTheme() {
+        Scene scene = usernameField.getScene();
+        boolean isDarkTheme = scene.getStylesheets().contains(getClass().getResource("/css/dark-theme.css").toExternalForm());
+        
+        scene.getStylesheets().clear();
+        if (isDarkTheme) {
+            scene.getStylesheets().add(getClass().getResource("/css/light-theme.css").toExternalForm());
+            themeToggle.setText("🌙");
+        } else {
+            scene.getStylesheets().add(getClass().getResource("/css/dark-theme.css").toExternalForm());
+            themeToggle.setText("☀️");
+        }
     }
 } 

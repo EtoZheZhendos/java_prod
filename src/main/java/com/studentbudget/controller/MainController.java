@@ -77,6 +77,11 @@ public class MainController implements Initializable {
 
     @FXML private Label currentUserLabel;
 
+    @FXML private ToggleButton themeToggle;
+    private Scene scene;
+    private static final String LIGHT_THEME = "/css/light-theme.css";
+    private static final String DARK_THEME = "/css/dark-theme.css";
+
     public MainController(TransactionService transactionService, CategoryService categoryService, AuthService authService) {
         this.transactionService = transactionService;
         this.categoryService = categoryService;
@@ -88,18 +93,17 @@ public class MainController implements Initializable {
         initializeTableColumns();
         initializeFilters();
         initializeCategoryTable();
+        initializeThemeToggle();
         
-        // Отображаем информацию о текущем пользователе
         User currentUser = authService.getCurrentUser();
         currentUserLabel.setText(String.format("%s (%s)", 
             currentUser.getUsername(), 
             currentUser.getRole().toString()));
         
-        // Инициализация компонентов для администратора
         if (isAdmin()) {
             initializeAdminComponents();
         } else {
-            // Скрываем компоненты администратора
+
             if (adminTab != null && mainTabPane != null) {
                 mainTabPane.getTabs().remove(adminTab);
             }
@@ -115,7 +119,7 @@ public class MainController implements Initializable {
     }
 
     private void initializeTableColumns() {
-        // Initialize columns for transactions table
+
         dateColumn.setCellValueFactory(new PropertyValueFactory<>("date"));
         typeColumn.setCellValueFactory(new PropertyValueFactory<>("type"));
         categoryColumn.setCellValueFactory(new PropertyValueFactory<>("category"));
@@ -138,7 +142,6 @@ public class MainController implements Initializable {
             });
         }
 
-        // Add cell factory for category column to display category name
         categoryColumn.setCellFactory(column -> new TableCell<>() {
             @Override
             protected void updateItem(Category category, boolean empty) {
@@ -151,7 +154,6 @@ public class MainController implements Initializable {
             }
         });
 
-        // Format date cells
         dateColumn.setCellFactory(column -> new TableCell<>() {
             @Override
             protected void updateItem(LocalDateTime item, boolean empty) {
@@ -164,7 +166,6 @@ public class MainController implements Initializable {
             }
         });
 
-        // Format amount cells
         amountColumn.setCellFactory(column -> new TableCell<>() {
             @Override
             protected void updateItem(BigDecimal item, boolean empty) {
@@ -211,7 +212,7 @@ public class MainController implements Initializable {
 
     private void initializeAdminComponents() {
         if (usersTable != null) {
-            // Initialize users table columns
+
             usernameColumn.setCellValueFactory(new PropertyValueFactory<>("username"));
             firstNameColumn.setCellValueFactory(new PropertyValueFactory<>("firstName"));
             lastNameColumn.setCellValueFactory(new PropertyValueFactory<>("lastName"));
@@ -220,7 +221,6 @@ public class MainController implements Initializable {
             createdAtColumn.setCellValueFactory(new PropertyValueFactory<>("createdAt"));
             activeColumn.setCellValueFactory(new PropertyValueFactory<>("active"));
             
-            // Custom cell factory for user balance
             userBalanceColumn.setCellFactory(column -> new TableCell<>() {
                 @Override
                 protected void updateItem(BigDecimal item, boolean empty) {
@@ -329,7 +329,6 @@ public class MainController implements Initializable {
             }
         }
         
-        // Применяем дополнительные фильтры
         if (!searchField.getText().isEmpty()) {
             String searchTerm = searchField.getText().toLowerCase();
             results = results.stream()
@@ -370,7 +369,6 @@ public class MainController implements Initializable {
         categoryNameColumn.setCellValueFactory(new PropertyValueFactory<>("name"));
         categoryDescriptionColumn.setCellValueFactory(new PropertyValueFactory<>("description"));
 
-        // Add action buttons to the category actions column
         categoryActionsColumn.setCellFactory(param -> new TableCell<>() {
             private final Button editButton = new Button("Изменить");
             private final Button deleteButton = new Button("Удалить");
@@ -409,7 +407,7 @@ public class MainController implements Initializable {
         System.out.println("Updating expense chart with distribution: " + distribution);
         
         if (distribution != null && !distribution.isEmpty()) {
-            // Sort categories by percentage for consistent display
+
             List<Map.Entry<Category, Double>> sortedEntries = new ArrayList<>(distribution.entrySet());
             sortedEntries.sort((e1, e2) -> e2.getValue().compareTo(e1.getValue()));
             
@@ -433,11 +431,10 @@ public class MainController implements Initializable {
             
             System.out.println(String.format("Total percentage in pie chart: %.2f%%", totalPercentage));
             
-            // Add legend if not present
             expenseChart.setLegendVisible(true);
         } else {
             System.out.println("No expense distribution data available");
-            // Add placeholder when no data
+
             expenseChart.getData().add(new PieChart.Data("Нет расходов", 100));
         }
     }
@@ -527,7 +524,6 @@ public class MainController implements Initializable {
 
             TransactionDialogController controller = loader.getController();
             
-            // Get all categories and log them
             List<Category> categories = categoryService.getAllCategories();
             System.out.println("Loading categories for transaction dialog: " + categories.size());
             categories.forEach(category -> 
@@ -602,7 +598,7 @@ public class MainController implements Initializable {
                         
                         moveAlert.showAndWait().ifPresent(moveResponse -> {
                             if (moveResponse == ButtonType.YES) {
-                                // Показываем диалог выбора новой категории
+
                                 List<Category> categories = categoryService.getAllCategories();
                                 categories.remove(category);
                                 
@@ -653,7 +649,7 @@ public class MainController implements Initializable {
                             }
                         });
                     } else {
-                        // Если у категории нет транзакций, просто удаляем её
+
                         categoryService.deleteCategory(category.getId());
                         updateDashboard();
                     }
@@ -677,7 +673,6 @@ public class MainController implements Initializable {
         try {
             authService.logout();
             
-            // Загружаем окно авторизации
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/login-view.fxml"));
             LoginController controller = new LoginController(authService, transactionService, categoryService);
             loader.setController(controller);
@@ -685,7 +680,6 @@ public class MainController implements Initializable {
             Scene scene = new Scene(loader.load());
             scene.getStylesheets().add(getClass().getResource("/css/styles.css").toExternalForm());
             
-            // Получаем текущее окно и меняем сцену
             Stage currentStage = (Stage) currentUserLabel.getScene().getWindow();
             currentStage.setScene(scene);
             currentStage.setTitle("Student Budget Manager - Login");
@@ -705,5 +699,25 @@ public class MainController implements Initializable {
         alert.setHeaderText(null);
         alert.setContentText(content);
         alert.showAndWait();
+    }
+
+    private void initializeThemeToggle() {
+        themeToggle.setSelected(true); // По умолчанию темная тема
+        themeToggle.setText(themeToggle.isSelected() ? "🌙" : "☀️");
+        
+        themeToggle.selectedProperty().addListener((observable, oldValue, newValue) -> {
+            scene = themeToggle.getScene();
+            if (scene != null) {
+                if (newValue) { // Темная тема
+                    scene.getStylesheets().remove(LIGHT_THEME);
+                    scene.getStylesheets().add(DARK_THEME);
+                    themeToggle.setText("🌙");
+                } else { // Светлая тема
+                    scene.getStylesheets().remove(DARK_THEME);
+                    scene.getStylesheets().add(LIGHT_THEME);
+                    themeToggle.setText("☀️");
+                }
+            }
+        });
     }
 } 

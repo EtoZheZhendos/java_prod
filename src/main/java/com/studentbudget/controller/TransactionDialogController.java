@@ -33,7 +33,6 @@ public class TransactionDialogController implements Initializable {
         typeComboBox.getItems().addAll(TransactionType.values());
         statusComboBox.getItems().addAll(TransactionStatus.values());
 
-        // Set up category combo box converter
         categoryComboBox.setConverter(new StringConverter<>() {
             @Override
             public String toString(Category category) {
@@ -46,23 +45,21 @@ public class TransactionDialogController implements Initializable {
             }
         });
 
-        // Add validators and formatters for amount field
         amountField.textProperty().addListener((observable, oldValue, newValue) -> {
             if (!newValue.matches("\\d*(\\.\\d{0,2})?")) {
                 amountField.setText(oldValue);
             }
         });
 
-        // Format amount with ruble symbol when focus is lost
         amountField.focusedProperty().addListener((observable, oldValue, newValue) -> {
-            if (!newValue) { // focus lost
+            if (!newValue) { 
                 try {
                     BigDecimal amount = new BigDecimal(amountField.getText().replace("₽", "").trim());
                     amountField.setText(String.format("%.2f ₽", amount));
                 } catch (NumberFormatException e) {
-                    // Keep the original text if it's not a valid number
+
                 }
-            } else { // focus gained
+            } else { 
                 String text = amountField.getText().replace("₽", "").trim();
                 amountField.setText(text);
             }
@@ -74,12 +71,10 @@ public class TransactionDialogController implements Initializable {
         categoryComboBox.getItems().clear();
         categoryComboBox.getItems().addAll(categories);
         
-        // Log each category being added
         categories.forEach(category -> 
             System.out.println("Added category to combo box: " + category.getName())
         );
         
-        // If there are categories, select the first one by default
         if (!categories.isEmpty()) {
             categoryComboBox.setValue(categories.get(0));
         }
@@ -94,7 +89,7 @@ public class TransactionDialogController implements Initializable {
                 amountField.setText(String.format("%.2f ₽", transaction.getAmount()));
             }
             if (transaction.getCategory() != null) {
-                // Find the category in the combo box items
+
                 categoryComboBox.getItems().stream()
                     .filter(c -> c.getId().equals(transaction.getCategory().getId()))
                     .findFirst()

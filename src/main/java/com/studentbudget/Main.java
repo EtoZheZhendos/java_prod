@@ -1,52 +1,78 @@
 package com.studentbudget;
 
-import com.studentbudget.config.AppConfig;
 import com.studentbudget.controller.LoginController;
+import com.studentbudget.service.AuthService;
+import com.studentbudget.service.CategoryService;
+import com.studentbudget.service.TransactionService;
+import com.studentbudget.service.impl.AuthServiceImpl;
+import com.studentbudget.service.impl.CategoryServiceImpl;
+import com.studentbudget.service.impl.TransactionServiceImpl;
+import com.studentbudget.dao.UserDao;
+import com.studentbudget.dao.CategoryDao;
+import com.studentbudget.dao.TransactionDao;
+import com.studentbudget.dao.impl.UserDaoImpl;
+import com.studentbudget.dao.impl.CategoryDaoImpl;
+import com.studentbudget.dao.impl.TransactionDaoImpl;
+import com.studentbudget.util.HibernateTransactionManager;
+import com.studentbudget.util.DatabaseInitializer;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.hibernate.SessionFactory;
+import org.hibernate.cfg.Configuration;
 
 public class Main extends Application {
     private static final Logger logger = LoggerFactory.getLogger(Main.class);
+    private SessionFactory sessionFactory;
+    private HibernateTransactionManager transactionManager;
 
     @Override
     public void start(Stage primaryStage) {
         try {
-            // Инициализация конфигурации
-            AppConfig appConfig = AppConfig.getInstance();
+        
+            sessionFactory = new Configuration().configure().buildSessionFactory();
+            transactionManager = new HibernateTransactionManager(sessionFactory);
             
-            // Загрузка FXML для окна авторизации
+
+            UserDao userDao = new UserDaoImpl(sessionFactory);
+            CategoryDao categoryDao = new CategoryDaoImpl(sessionFactory);
+            TransactionDao transactionDao = new TransactionDaoImpl(sessionFactory);
+
+        
+            AuthService authService = new AuthServiceImpl(userDao, transactionManager);
+            CategoryService categoryService = new CategoryServiceImpl(categoryDao, transactionDao, transactionManager);
+            TransactionService transactionService = new TransactionServiceImpl(transactionDao, transactionManager, authService);
+
+        
+            DatabaseInitializer initializer = new DatabaseInitializer(categoryService, sessionFactory);
+            initializer.initialize();
+
+        
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/login-view.fxml"));
-            
-            // Создание контроллера с внедрением зависимостей
-            LoginController controller = new LoginController(
-                appConfig.getAuthService(),
-                appConfig.getTransactionService(),
-                appConfig.getCategoryService()
-            );
+            LoginController controller = new LoginController(authService, transactionService, categoryService);
             loader.setController(controller);
             
             Scene scene = new Scene(loader.load());
-            scene.getStylesheets().add(getClass().getResource("/css/styles.css").toExternalForm());
+            scene.getStylesheets().add(getClass().getResource("/css/dark-theme.css").toExternalForm());
             
-            primaryStage.setTitle("Student Budget Manager - Login");
             primaryStage.setScene(scene);
+            primaryStage.setTitle("Student Budget Manager - Login");
             primaryStage.show();
             
         } catch (Exception e) {
-            logger.error("Failed to start application", e);
-            e.printStackTrace();
+            logger.error("Error starting application: ", e);
             System.exit(1);
         }
     }
 
     @Override
     public void stop() {
-        // Закрытие ресурсов при завершении приложения
-        AppConfig.getInstance().shutdown();
+        if (sessionFactory != null) {
+            sessionFactory.close();
+        }
     }
 
     public static void main(String[] args) {

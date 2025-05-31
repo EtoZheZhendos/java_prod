@@ -6,33 +6,102 @@
 
 <VBox xmlns="http://javafx.com/javafx"
       xmlns:fx="http://javafx.com/fxml"
-      spacing="10" styleClass="root">
+      alignment="TOP_CENTER"
+      spacing="20"
+      styleClass="main-container">
 
-    <padding>
-        <Insets top="20" right="20" bottom="20" left="20"/>
-    </padding>
+    <!-- Шапка -->
+    <HBox styleClass="header-panel" alignment="CENTER_LEFT">
+        <padding>
+            <Insets top="10" right="20" bottom="10" left="20"/>
+        </padding>
+        <Label text="Управление Бюджетом Студента" styleClass="title-label"/>
+        <Region HBox.hgrow="ALWAYS"/>
+        <ToggleButton fx:id="themeToggle" text="🌙" styleClass="theme-toggle"/>
+    </HBox>
 
-    <Label text="Управление Бюджетом Студента" styleClass="title-label"/>
+    <!-- Отступ после шапки -->
+    <Region minHeight="40"/>
 
-    <TabPane fx:id="loginTabPane">
+    <!-- Форма авторизации -->
+    <TabPane fx:id="loginTabPane" maxWidth="400" styleClass="auth-tab-pane">
         <Tab fx:id="loginTab" text="Вход" closable="false">
-            <VBox spacing="15" styleClass="auth-form">
-                <TextField fx:id="usernameField" promptText="Имя пользователя"/>
-                <PasswordField fx:id="passwordField" promptText="Пароль"/>
-                <Button text="Войти" onAction="#handleLogin" defaultButton="true" styleClass="auth-button"/>
+            <VBox alignment="CENTER" spacing="15" styleClass="login-form">
+                <padding>
+                    <Insets top="20" right="40" bottom="20" left="40"/>
+                </padding>
+
+                <Label text="Авторизация" styleClass="login-title"/>
+                
+                <TextField fx:id="usernameField" 
+                          promptText="Имя пользователя"
+                          styleClass="login-field"
+                          maxWidth="300"/>
+                          
+                <PasswordField fx:id="passwordField" 
+                             promptText="Пароль"
+                             styleClass="login-field"
+                             maxWidth="300"/>
+
+                <Button text="Войти" 
+                        onAction="#handleLogin"
+                        styleClass="login-button"
+                        maxWidth="300"/>
+
+                <Label fx:id="errorLabel" 
+                      styleClass="error-label"
+                      wrapText="true"
+                      maxWidth="300"/>
             </VBox>
         </Tab>
         
         <Tab fx:id="registerTab" text="Регистрация" closable="false">
-            <VBox spacing="15" styleClass="auth-form">
-                <TextField fx:id="regUsernameField" promptText="Имя пользователя"/>
-                <TextField fx:id="firstNameField" promptText="Имя"/>
-                <TextField fx:id="lastNameField" promptText="Фамилия"/>
-                <TextField fx:id="emailField" promptText="Email"/>
-                <PasswordField fx:id="regPasswordField" promptText="Пароль"/>
-                <PasswordField fx:id="regConfirmPasswordField" promptText="Подтвердите пароль"/>
-                <ComboBox fx:id="roleComboBox" promptText="Выберите роль"/>
-                <Button text="Зарегистрироваться" onAction="#handleRegister" styleClass="auth-button"/>
+            <VBox alignment="CENTER" spacing="15" styleClass="login-form">
+                <padding>
+                    <Insets top="20" right="40" bottom="20" left="40"/>
+                </padding>
+
+                <Label text="Регистрация" styleClass="login-title"/>
+                
+                <TextField fx:id="regUsernameField" 
+                          promptText="Имя пользователя"
+                          styleClass="login-field"
+                          maxWidth="300"/>
+                          
+                <PasswordField fx:id="regPasswordField" 
+                             promptText="Пароль"
+                             styleClass="login-field"
+                             maxWidth="300"/>
+                             
+                <PasswordField fx:id="regConfirmPasswordField" 
+                             promptText="Подтверждение пароля"
+                             styleClass="login-field"
+                             maxWidth="300"/>
+                             
+                <TextField fx:id="emailField" 
+                          promptText="Email"
+                          styleClass="login-field"
+                          maxWidth="300"/>
+                          
+                <TextField fx:id="firstNameField" 
+                          promptText="Имя"
+                          styleClass="login-field"
+                          maxWidth="300"/>
+                          
+                <TextField fx:id="lastNameField" 
+                          promptText="Фамилия"
+                          styleClass="login-field"
+                          maxWidth="300"/>
+                          
+                <ComboBox fx:id="roleComboBox" 
+                         promptText="Роль"
+                         styleClass="login-field"
+                         maxWidth="300"/>
+
+                <Button text="Зарегистрироваться" 
+                        onAction="#handleRegister"
+                        styleClass="login-button"
+                        maxWidth="300"/>
             </VBox>
         </Tab>
     </TabPane>
