@@ -6,12 +6,13 @@
     <session-factory>
         <!-- Database connection settings -->
         <property name="hibernate.connection.driver_class">org.h2.Driver</property>
-        <property name="hibernate.connection.url">jdbc:h2:file:./data/studentbudget;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=LEGACY;DATABASE_TO_LOWER=TRUE;DEFAULT_ESCAPE='';CASE_INSENSITIVE_IDENTIFIERS=TRUE;DB_CLOSE_ON_EXIT=FALSE</property>
+        <property name="hibernate.connection.url">jdbc:h2:./data/studentbudget;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=LEGACY;DATABASE_TO_LOWER=TRUE;DEFAULT_ESCAPE='';CASE_INSENSITIVE_IDENTIFIERS=TRUE</property>
         <property name="hibernate.connection.username">sa</property>
         <property name="hibernate.connection.password"></property>
         <property name="hibernate.connection.characterEncoding">UTF-8</property>
         <property name="hibernate.connection.useUnicode">true</property>
         <property name="hibernate.connection.charSet">UTF-8</property>
+        <property name="hibernate.connection.defaultNChar">true</property>
 
         <!-- H2 Dialect -->
         <property name="hibernate.dialect">org.hibernate.dialect.H2Dialect</property>

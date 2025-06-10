@@ -24,7 +24,6 @@ public interface TransactionService {
     List<Transaction> getCurrentUserTransactionsByDateRange(LocalDate startDate, LocalDate endDate);
     List<Transaction> getCurrentUserTransactionsByStatus(String status);
     
-
     List<Transaction> getAllUsersTransactions();
     List<Transaction> getTransactionsByUser(User user);
     List<Transaction> getTransactionsByUserAndType(User user, TransactionType type);
@@ -49,4 +48,29 @@ public interface TransactionService {
     void updateTransactionStatus(Long id, String newStatus);
     List<Transaction> getTransactionsByStatus(String status);
     void moveTransactions(Category fromCategory, Category toCategory);
+
+    // Новые методы для администратора
+
+    // Пакетные операции
+    void batchUpdateStatus(List<Long> transactionIds, String newStatus);
+    void batchDeleteTransactions(List<Long> transactionIds);
+    void batchMoveTransactions(List<Long> transactionIds, Category toCategory);
+
+    // Расширенная статистика
+    Map<User, Map<String, BigDecimal>> getUserStatistics(LocalDate startDate, LocalDate endDate);
+    Map<String, BigDecimal> getSystemStatistics(LocalDate startDate, LocalDate endDate);
+    List<Transaction> getAnomalousTransactions(BigDecimal threshold);
+
+    // Управление лимитами пользователей
+    void setUserTransactionLimit(User user, TransactionType type, BigDecimal limit);
+    void removeUserTransactionLimit(User user, TransactionType type);
+    Map<User, Map<TransactionType, BigDecimal>> getAllUserLimits();
+    boolean checkTransactionLimit(Transaction transaction);
+
+    // Рабочий процесс утверждения
+    void requireApprovalForTransactions(BigDecimal threshold);
+    List<Transaction> getPendingApprovalTransactions();
+    void approveTransaction(Long transactionId);
+    void rejectTransaction(Long transactionId, String reason);
+    List<Transaction> getRejectedTransactions();
 } 

@@ -17,6 +17,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.LocalDate;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 public class TransactionServiceImpl implements TransactionService {
@@ -24,6 +25,12 @@ public class TransactionServiceImpl implements TransactionService {
     private final TransactionDao transactionDao;
     private final HibernateTransactionManager transactionManager;
     private final AuthService authService;
+
+    // Хранение лимитов пользователей: User -> TransactionType -> Limit
+    private final Map<Long, Map<TransactionType, BigDecimal>> userLimits = new ConcurrentHashMap<>();
+    
+    // Порог для обязательного утверждения транзакций
+    private BigDecimal approvalThreshold = BigDecimal.valueOf(10000);
 
     public TransactionServiceImpl(TransactionDao transactionDao, HibernateTransactionManager transactionManager, AuthService authService) {
         this.transactionDao = transactionDao;
@@ -44,6 +51,18 @@ public class TransactionServiceImpl implements TransactionService {
         
         if (!isAdminOrOwner(transaction.getUser())) {
             throw new SecurityException("Недостаточно прав для создания транзакции от имени другого пользователя");
+        }
+
+        // Проверяем лимит пользователя
+        if (!checkTransactionLimit(transaction)) {
+            throw new IllegalStateException("Транзакция превышает установленный лимит для пользователя");
+        }
+
+        // Проверяем необходимость утверждения
+        if (transaction.getAmount().compareTo(approvalThreshold) > 0) {
+            transaction.setStatus(TransactionStatus.PENDING);
+        } else {
+            transaction.setStatus(TransactionStatus.ACTIVE);
         }
         
         return transactionManager.executeInTransaction(session -> transactionDao.save(transaction));
@@ -463,6 +482,275 @@ public class TransactionServiceImpl implements TransactionService {
                 transaction.setCategory(toCategory);
                 transactionDao.update(transaction);
             }
+        });
+    }
+
+    @Override
+    public void batchUpdateStatus(List<Long> transactionIds, String newStatus) {
+        logger.debug("Batch updating status to {} for transactions: {}", newStatus, transactionIds);
+        if (!isAdmin()) {
+            throw new SecurityException("Только администратор может выполнять пакетное обновление статуса");
+        }
+        
+        transactionManager.executeInTransactionWithoutResult(session -> {
+            for (Long id : transactionIds) {
+                Transaction transaction = transactionDao.findById(id)
+                    .orElseThrow(() -> new IllegalArgumentException("Transaction not found with id: " + id));
+                transaction.setStatus(TransactionStatus.valueOf(newStatus));
+                transactionDao.update(transaction);
+            }
+        });
+    }
+
+    @Override
+    public void batchDeleteTransactions(List<Long> transactionIds) {
+        logger.debug("Batch deleting transactions: {}", transactionIds);
+        if (!isAdmin()) {
+            throw new SecurityException("Только администратор может выполнять пакетное удаление");
+        }
+        
+        transactionManager.executeInTransactionWithoutResult(session -> {
+            for (Long id : transactionIds) {
+                transactionDao.deleteById(id);
+            }
+        });
+    }
+
+    @Override
+    public void batchMoveTransactions(List<Long> transactionIds, Category toCategory) {
+        logger.debug("Batch moving transactions {} to category: {}", transactionIds, toCategory.getName());
+        if (!isAdmin()) {
+            throw new SecurityException("Только администратор может выполнять пакетное перемещение");
+        }
+        
+        transactionManager.executeInTransactionWithoutResult(session -> {
+            for (Long id : transactionIds) {
+                Transaction transaction = transactionDao.findById(id)
+                    .orElseThrow(() -> new IllegalArgumentException("Transaction not found with id: " + id));
+                transaction.setCategory(toCategory);
+                transactionDao.update(transaction);
+            }
+        });
+    }
+
+    @Override
+    public Map<User, Map<String, BigDecimal>> getUserStatistics(LocalDate startDate, LocalDate endDate) {
+        logger.debug("Getting user statistics between {} and {}", startDate, endDate);
+        if (!isAdmin()) {
+            throw new SecurityException("Только администратор может просматривать статистику пользователей");
+        }
+
+        LocalDateTime start = startDate.atStartOfDay();
+        LocalDateTime end = endDate.atTime(23, 59, 59);
+
+        return transactionManager.executeInTransaction(session -> {
+            List<Transaction> transactions = transactionDao.findByDateRange(start, end);
+            Map<User, Map<String, BigDecimal>> stats = new HashMap<>();
+
+            for (Transaction t : transactions) {
+                User user = t.getUser();
+                stats.putIfAbsent(user, new HashMap<>());
+                Map<String, BigDecimal> userStats = stats.get(user);
+
+                // Обновляем общую сумму
+                String totalKey = t.getType() == TransactionType.INCOME ? "totalIncome" : "totalExpenses";
+                userStats.merge(totalKey, t.getAmount(), BigDecimal::add);
+
+                // Обновляем сумму по категории
+                String categoryKey = "category_" + t.getCategory().getName();
+                userStats.merge(categoryKey, t.getAmount(), BigDecimal::add);
+
+                // Обновляем количество транзакций
+                String countKey = "transactionCount";
+                userStats.merge(countKey, BigDecimal.ONE, BigDecimal::add);
+            }
+
+            return stats;
+        });
+    }
+
+    @Override
+    public Map<String, BigDecimal> getSystemStatistics(LocalDate startDate, LocalDate endDate) {
+        logger.debug("Getting system statistics between {} and {}", startDate, endDate);
+        if (!isAdmin()) {
+            throw new SecurityException("Только администратор может просматривать системную статистику");
+        }
+
+        LocalDateTime start = startDate.atStartOfDay();
+        LocalDateTime end = endDate.atTime(23, 59, 59);
+
+        return transactionManager.executeInTransaction(session -> {
+            List<Transaction> transactions = transactionDao.findByDateRange(start, end);
+            Map<String, BigDecimal> stats = new HashMap<>();
+
+            // Общая статистика
+            stats.put("totalTransactions", BigDecimal.valueOf(transactions.size()));
+            stats.put("totalIncome", transactions.stream()
+                .filter(t -> t.getType() == TransactionType.INCOME)
+                .map(Transaction::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add));
+            stats.put("totalExpenses", transactions.stream()
+                .filter(t -> t.getType() == TransactionType.EXPENSE)
+                .map(Transaction::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add));
+
+            // Статистика по статусам
+            Map<TransactionStatus, Long> statusCounts = transactions.stream()
+                .collect(Collectors.groupingBy(Transaction::getStatus, Collectors.counting()));
+            statusCounts.forEach((status, count) -> 
+                stats.put("status_" + status.name(), BigDecimal.valueOf(count)));
+
+            return stats;
+        });
+    }
+
+    @Override
+    public List<Transaction> getAnomalousTransactions(BigDecimal threshold) {
+        logger.debug("Getting anomalous transactions with threshold: {}", threshold);
+        if (!isAdmin()) {
+            throw new SecurityException("Только администратор может искать аномальные транзакции");
+        }
+
+        return transactionManager.executeInTransaction(session -> {
+            List<Transaction> allTransactions = transactionDao.findAll();
+            Map<User, BigDecimal> userAverages = new HashMap<>();
+
+            // Вычисляем средние значения для каждого пользователя
+            for (Transaction t : allTransactions) {
+                userAverages.merge(t.getUser(), t.getAmount(), BigDecimal::add);
+            }
+            userAverages.forEach((user, total) -> 
+                userAverages.put(user, total.divide(BigDecimal.valueOf(
+                    allTransactions.stream().filter(t -> t.getUser().equals(user)).count()
+                ), 2, BigDecimal.ROUND_HALF_UP)));
+
+            // Находим аномальные транзакции
+            return allTransactions.stream()
+                .filter(t -> {
+                    BigDecimal userAvg = userAverages.get(t.getUser());
+                    return t.getAmount().subtract(userAvg).abs()
+                        .compareTo(userAvg.multiply(threshold)) > 0;
+                })
+                .collect(Collectors.toList());
+        });
+    }
+
+    @Override
+    public void setUserTransactionLimit(User user, TransactionType type, BigDecimal limit) {
+        logger.debug("Setting {} limit for user {}: {}", type, user.getUsername(), limit);
+        if (!isAdmin()) {
+            throw new SecurityException("Только администратор может устанавливать лимиты");
+        }
+        
+        userLimits.computeIfAbsent(user.getId(), k -> new ConcurrentHashMap<>())
+            .put(type, limit);
+    }
+
+    @Override
+    public void removeUserTransactionLimit(User user, TransactionType type) {
+        logger.debug("Removing {} limit for user {}", type, user.getUsername());
+        if (!isAdmin()) {
+            throw new SecurityException("Только администратор может удалять лимиты");
+        }
+        
+        Map<TransactionType, BigDecimal> limits = userLimits.get(user.getId());
+        if (limits != null) {
+            limits.remove(type);
+        }
+    }
+
+    @Override
+    public Map<User, Map<TransactionType, BigDecimal>> getAllUserLimits() {
+        logger.debug("Getting all user limits");
+        if (!isAdmin()) {
+            throw new SecurityException("Только администратор может просматривать лимиты");
+        }
+        
+        Map<User, Map<TransactionType, BigDecimal>> result = new HashMap<>();
+        transactionManager.executeInTransactionWithoutResult(session -> {
+            userLimits.forEach((userId, limits) -> {
+                User user = session.get(User.class, userId);
+                if (user != null) {
+                    result.put(user, new HashMap<>(limits));
+                }
+            });
+        });
+        return result;
+    }
+
+    @Override
+    public boolean checkTransactionLimit(Transaction transaction) {
+        Map<TransactionType, BigDecimal> limits = userLimits.get(transaction.getUser().getId());
+        if (limits == null) return true;
+
+        BigDecimal limit = limits.get(transaction.getType());
+        if (limit == null) return true;
+
+        return transaction.getAmount().compareTo(limit) <= 0;
+    }
+
+    @Override
+    public void requireApprovalForTransactions(BigDecimal threshold) {
+        logger.debug("Setting approval threshold to: {}", threshold);
+        if (!isAdmin()) {
+            throw new SecurityException("Только администратор может устанавливать порог утверждения");
+        }
+        this.approvalThreshold = threshold;
+    }
+
+    @Override
+    public List<Transaction> getPendingApprovalTransactions() {
+        logger.debug("Getting pending approval transactions");
+        if (!isAdmin()) {
+            throw new SecurityException("Только администратор может просматривать ожидающие утверждения транзакции");
+        }
+
+        return transactionManager.executeInTransaction(session ->
+            transactionDao.findByStatus(TransactionStatus.PENDING.name()));
+    }
+
+    @Override
+    public void approveTransaction(Long transactionId) {
+        logger.debug("Approving transaction: {}", transactionId);
+        if (!isAdmin()) {
+            throw new SecurityException("Только администратор может утверждать транзакции");
+        }
+
+        transactionManager.executeInTransactionWithoutResult(session -> {
+            Transaction transaction = transactionDao.findById(transactionId)
+                .orElseThrow(() -> new IllegalArgumentException("Transaction not found with id: " + transactionId));
+            transaction.setStatus(TransactionStatus.ACTIVE);
+            transactionDao.update(transaction);
+        });
+    }
+
+    @Override
+    public void rejectTransaction(Long transactionId, String reason) {
+        logger.debug("Rejecting transaction {} with reason: {}", transactionId, reason);
+        if (!isAdmin()) {
+            throw new SecurityException("Только администратор может отклонять транзакции");
+        }
+
+        transactionManager.executeInTransactionWithoutResult(session -> {
+            Transaction transaction = transactionDao.findById(transactionId)
+                .orElseThrow(() -> new IllegalArgumentException("Transaction not found with id: " + transactionId));
+            transaction.setStatus(TransactionStatus.REJECTED);
+            transaction.setRejectionReason(reason);
+            transactionDao.update(transaction);
+        });
+    }
+
+    @Override
+    public List<Transaction> getRejectedTransactions() {
+        logger.debug("Getting rejected transactions");
+        if (!isAdmin()) {
+            throw new SecurityException("Только администратор может просматривать отклоненные транзакции");
+        }
+
+        return transactionManager.executeInTransaction(session -> {
+            @SuppressWarnings("unchecked")
+            List<Transaction> transactions = transactionDao.findByStatus(TransactionStatus.REJECTED.name());
+            return transactions;
         });
     }
 } 

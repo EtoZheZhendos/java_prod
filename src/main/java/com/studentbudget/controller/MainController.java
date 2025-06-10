@@ -514,28 +514,59 @@ public class MainController implements Initializable {
 
     private boolean showTransactionDialog(Transaction transaction, String title) {
         try {
+            logger.debug("Начинаем открытие диалога транзакции");
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/transaction-dialog.fxml"));
+            logger.debug("FXML loader создан");
+            
+            // Создаем контроллер с необходимыми сервисами
+            TransactionDialogController controller = new TransactionDialogController(authService, userService);
+            logger.debug("Контроллер диалога создан");
+            
+            // Устанавливаем контроллер до загрузки FXML
+            loader.setController(controller);
+            logger.debug("Контроллер установлен в loader");
+            
+            logger.debug("Загружаем FXML");
             Scene scene = new Scene(loader.load());
+            logger.debug("FXML загружен успешно");
+            
             scene.getStylesheets().add(getClass().getResource("/css/styles.css").toExternalForm());
+            logger.debug("Стили добавлены");
 
             Stage dialogStage = new Stage();
             dialogStage.setTitle(title);
             dialogStage.initModality(Modality.WINDOW_MODAL);
             dialogStage.initOwner(totalIncomeLabel.getScene().getWindow());
             dialogStage.setScene(scene);
-
-            TransactionDialogController controller = loader.getController();
+            
+            // Устанавливаем минимальные размеры окна
+            dialogStage.setMinWidth(400);
+            dialogStage.setMinHeight(500);
+            
+            // Устанавливаем размеры окна
+            dialogStage.setWidth(500);
+            dialogStage.setHeight(600);
+            
+            // Центрируем окно относительно родительского окна
+            Stage parentStage = (Stage) totalIncomeLabel.getScene().getWindow();
+            dialogStage.setX(parentStage.getX() + (parentStage.getWidth() - dialogStage.getWidth()) / 2);
+            dialogStage.setY(parentStage.getY() + (parentStage.getHeight() - dialogStage.getHeight()) / 2);
+            
+            logger.debug("Stage настроен");
             
             List<Category> categories = categoryService.getAllCategories();
-            System.out.println("Loading categories for transaction dialog: " + categories.size());
+            logger.debug("Загружено категорий: {}", categories.size());
             categories.forEach(category -> 
-                System.out.println("Category: " + category.getName() + " (ID: " + category.getId() + ")")
+                logger.debug("Category: {} (ID: {})", category.getName(), category.getId())
             );
             
             controller.setCategories(categories);
             controller.setTransaction(transaction);
+            logger.debug("Данные установлены в контроллер");
 
+            logger.debug("Показываем диалог");
             dialogStage.showAndWait();
+            logger.debug("Диалог закрыт");
 
             if (controller.isSaveClicked()) {
                 transaction = controller.getTransaction();
@@ -543,7 +574,7 @@ public class MainController implements Initializable {
             }
             return false;
         } catch (IOException e) {
-            e.printStackTrace();
+            logger.error("Ошибка при открытии диалога транзакции", e);
             Alert alert = new Alert(Alert.AlertType.ERROR);
             alert.setTitle("Ошибка");
             alert.setHeaderText("Ошибка при открытии диалога");

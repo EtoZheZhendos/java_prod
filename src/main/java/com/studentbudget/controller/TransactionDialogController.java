@@ -62,22 +62,42 @@ public class TransactionDialogController implements Initializable {
      */
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
+        logger.debug("Инициализация TransactionDialogController начата");
+        
+        // Проверяем, что все FXML-компоненты были инициализированы
+        if (typeComboBox == null) logger.error("typeComboBox не инициализирован");
+        if (amountField == null) logger.error("amountField не инициализирован");
+        if (categoryComboBox == null) logger.error("categoryComboBox не инициализирован");
+        if (descriptionArea == null) logger.error("descriptionArea не инициализирован");
+        if (datePicker == null) logger.error("datePicker не инициализирован");
+        if (statusComboBox == null) logger.error("statusComboBox не инициализирован");
+        if (userComboBox == null) logger.error("userComboBox не инициализирован");
+        if (userLabel == null) logger.error("userLabel не инициализирован");
+        
         initializeComboBoxes();
+        logger.debug("ComboBoxes инициализированы");
         
         // Показывать выбор пользователя только для администраторов
         boolean isAdmin = authService.getCurrentUser().getRole() == UserRole.ADMIN;
+        logger.debug("Текущий пользователь {} администратор", isAdmin ? "является" : "не является");
+        
         userComboBox.setVisible(isAdmin);
         userLabel.setVisible(isAdmin);
         
         if (isAdmin) {
             initializeUserComboBox();
+            logger.debug("UserComboBox инициализирован для администратора");
         }
+        
+        logger.debug("Инициализация TransactionDialogController завершена");
     }
 
     /**
      * Инициализация выпадающих списков с конвертерами для корректного отображения значений.
      */
     private void initializeComboBoxes() {
+        logger.debug("Начало инициализации ComboBoxes");
+        
         // Инициализация списка типов транзакций
         typeComboBox.getItems().setAll(TransactionType.values());
         typeComboBox.setConverter(new StringConverter<>() {
@@ -95,6 +115,7 @@ public class TransactionDialogController implements Initializable {
                 return null; // Не используется для ComboBox
             }
         });
+        logger.debug("TypeComboBox инициализирован");
 
         // Инициализация списка статусов
         statusComboBox.getItems().setAll(TransactionStatus.values());
@@ -106,6 +127,7 @@ public class TransactionDialogController implements Initializable {
                     case ACTIVE -> "Активна";
                     case CANCELLED -> "Отменена";
                     case PENDING -> "Ожидает";
+                    case REJECTED -> "Отклонена";
                 };
             }
 
@@ -114,6 +136,7 @@ public class TransactionDialogController implements Initializable {
                 return null; // Не используется для ComboBox
             }
         });
+        logger.debug("StatusComboBox инициализирован");
 
         // Инициализация списка категорий
         categoryComboBox.setConverter(new StringConverter<>() {
@@ -127,6 +150,9 @@ public class TransactionDialogController implements Initializable {
                 return null; // Не используется для ComboBox
             }
         });
+        logger.debug("CategoryComboBox инициализирован");
+        
+        logger.debug("Завершение инициализации ComboBoxes");
     }
 
     /**
@@ -161,17 +187,28 @@ public class TransactionDialogController implements Initializable {
         this.transaction = transaction;
         if (transaction != null) {
             typeComboBox.setValue(transaction.getType());
-            amountField.setText(transaction.getAmount().toString());
+            if (transaction.getAmount() != null) {
+                amountField.setText(transaction.getAmount().toString());
+            } else {
+                amountField.setText("");
+            }
             categoryComboBox.setValue(transaction.getCategory());
             descriptionArea.setText(transaction.getDescription());
+            
+            // Initialize date with current date for new transactions
+            if (transaction.getDate() == null) {
+                transaction.setDate(LocalDateTime.now());
+            }
             datePicker.setValue(transaction.getDate().toLocalDate());
+            
             statusComboBox.setValue(transaction.getStatus());
             
-            if (userComboBox.isVisible()) {
+            if (userComboBox != null) {
                 userComboBox.setValue(transaction.getUser());
             }
         } else {
             typeComboBox.setValue(TransactionType.EXPENSE);
+            amountField.setText("");
             datePicker.setValue(LocalDate.now());
             statusComboBox.setValue(TransactionStatus.ACTIVE);
         }
@@ -191,12 +228,15 @@ public class TransactionDialogController implements Initializable {
      */
     @FXML
     private void handleSave() {
+        logger.debug("Начало обработки сохранения");
         if (!validateInput()) {
+            logger.debug("Валидация не пройдена");
             return;
         }
 
         if (transaction == null) {
             transaction = new Transaction();
+            logger.debug("Создана новая транзакция");
         }
 
         try {
@@ -207,17 +247,19 @@ public class TransactionDialogController implements Initializable {
             transaction.setDate(LocalDateTime.of(datePicker.getValue(), LocalDateTime.now().toLocalTime()));
             transaction.setStatus(statusComboBox.getValue());
             
-            // Установка пользователя в зависимости от прав доступа
             if (userComboBox.isVisible()) {
                 transaction.setUser(userComboBox.getValue());
             } else {
                 transaction.setUser(authService.getCurrentUser());
             }
-
+            
+            logger.debug("Данные транзакции установлены успешно");
+            
             saveClicked = true;
             closeDialog();
-        } catch (NumberFormatException e) {
-            showError("Ошибка", "Неверный формат суммы", "Пожалуйста, введите корректное числовое значение.");
+        } catch (Exception e) {
+            logger.error("Ошибка при сохранении транзакции", e);
+            showError("Ошибка", "Ошибка при сохранении", e.getMessage());
         }
     }
 
@@ -271,6 +313,8 @@ public class TransactionDialogController implements Initializable {
      */
     @FXML
     private void handleCancel() {
+        logger.debug("Отмена создания/редактирования транзакции");
+        saveClicked = false;
         closeDialog();
     }
 
@@ -278,6 +322,7 @@ public class TransactionDialogController implements Initializable {
      * Закрывает диалоговое окно.
      */
     private void closeDialog() {
+        logger.debug("Закрытие диалога");
         Stage stage = (Stage) typeComboBox.getScene().getWindow();
         stage.close();
     }

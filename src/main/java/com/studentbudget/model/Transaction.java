@@ -35,6 +35,9 @@ public class Transaction {
     @Column(nullable = false)
     private TransactionStatus status = TransactionStatus.ACTIVE;
 
+    @Column(name = "rejection_reason")
+    private String rejectionReason;
+
     public Transaction() {}
 
     public Transaction(BigDecimal amount, TransactionType type, Category category, String description, User user) {
@@ -110,6 +113,14 @@ public class Transaction {
         this.status = status;
     }
 
+    public String getRejectionReason() {
+        return rejectionReason;
+    }
+
+    public void setRejectionReason(String rejectionReason) {
+        this.rejectionReason = rejectionReason;
+    }
+
     public String getFormattedAmount() {
         return String.format("%.2f ₽", amount);
     }
@@ -125,6 +136,7 @@ public class Transaction {
                 ", date=" + date +
                 ", description='" + description + '\'' +
                 ", status=" + status +
+                ", rejectionReason='" + rejectionReason + '\'' +
                 '}';
     }
 } 
