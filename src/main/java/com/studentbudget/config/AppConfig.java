@@ -9,9 +9,11 @@ import com.studentbudget.dao.impl.UserDaoImpl;
 import com.studentbudget.service.AuthService;
 import com.studentbudget.service.CategoryService;
 import com.studentbudget.service.TransactionService;
+import com.studentbudget.service.UserService;
 import com.studentbudget.service.impl.AuthServiceImpl;
 import com.studentbudget.service.impl.CategoryServiceImpl;
 import com.studentbudget.service.impl.TransactionServiceImpl;
+import com.studentbudget.service.impl.UserServiceImpl;
 import com.studentbudget.util.DatabaseInitializer;
 import com.studentbudget.util.HibernateTransactionManager;
 import org.hibernate.SessionFactory;
@@ -31,10 +33,10 @@ public class AppConfig {
     private final AuthService authService;
     private final CategoryService categoryService;
     private final TransactionService transactionService;
+    private final UserService userService;
 
     private AppConfig() {
         try {
-
             sessionFactory = new Configuration().configure().buildSessionFactory();
             transactionManager = new HibernateTransactionManager(sessionFactory);
 
@@ -42,12 +44,17 @@ public class AppConfig {
             categoryDao = new CategoryDaoImpl(sessionFactory);
             transactionDao = new TransactionDaoImpl(sessionFactory);
 
+            userService = new UserServiceImpl(userDao, transactionManager);
             authService = new AuthServiceImpl(userDao, transactionManager);
             categoryService = new CategoryServiceImpl(categoryDao, transactionDao, transactionManager);
             transactionService = new TransactionServiceImpl(transactionDao, transactionManager, authService);
 
-            DatabaseInitializer initializer = new DatabaseInitializer(categoryService, sessionFactory);
-            initializer.initialize();
+            DatabaseInitializer databaseInitializer = new DatabaseInitializer(
+                categoryService,
+                userService,
+                sessionFactory
+            );
+            databaseInitializer.initialize();
 
         } catch (Exception e) {
             logger.error("Failed to initialize application configuration", e);
@@ -78,5 +85,9 @@ public class AppConfig {
 
     public TransactionService getTransactionService() {
         return transactionService;
+    }
+
+    public UserService getUserService() {
+        return userService;
     }
 } 

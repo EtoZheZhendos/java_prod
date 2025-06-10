@@ -57,6 +57,12 @@ public class CategoryServiceImpl implements CategoryService {
         transactionManager.executeInTransactionWithoutResult(session -> {
             Category category = categoryDao.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Category not found with id: " + id));
+            
+            List<Transaction> transactions = transactionDao.findByCategory(category);
+            if (!transactions.isEmpty()) {
+                throw new IllegalStateException("Cannot delete category with existing transactions");
+            }
+            
             categoryDao.deleteById(id);
         });
     }

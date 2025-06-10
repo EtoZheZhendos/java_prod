@@ -41,6 +41,10 @@
         <Label text="Статус:" GridPane.rowIndex="5" GridPane.columnIndex="0"/>
         <ComboBox fx:id="statusComboBox" GridPane.rowIndex="5" GridPane.columnIndex="1"
                   maxWidth="Infinity"/>
+
+        <Label fx:id="userLabel" text="Пользователь:" GridPane.rowIndex="6" GridPane.columnIndex="0"/>
+        <ComboBox fx:id="userComboBox" GridPane.rowIndex="6" GridPane.columnIndex="1"
+                  maxWidth="Infinity"/>
     </GridPane>
 
     <HBox spacing="10" alignment="CENTER_RIGHT">

@@ -5,6 +5,7 @@ com\studentbudget\dao\GenericDao.class
 com\studentbudget\util\HibernateTransactionManager.class
 com\studentbudget\dao\impl\RestApiTransactionDao$1.class
 com\studentbudget\controller\TransactionDialogController.class
+com\studentbudget\controller\TransactionDialogController$2.class
 com\studentbudget\controller\MainController$3.class
 com\studentbudget\controller\MainController.class
 com\studentbudget\dao\impl\RestApiTransactionDao$4.class
@@ -16,6 +17,7 @@ com\studentbudget\dao\impl\RestApiTransactionDao.class
 com\studentbudget\dao\impl\UserDaoImpl.class
 com\studentbudget\model\Transaction.class
 com\studentbudget\dao\impl\JsonFileTransactionDao$1.class
+com\studentbudget\service\impl\UserServiceImpl.class
 com\studentbudget\controller\MainController$6.class
 com\studentbudget\model\Category.class
 com\studentbudget\controller\LoginController.class
@@ -24,6 +26,7 @@ com\studentbudget\model\TransactionStatus.class
 com\studentbudget\service\SettingsService.class
 com\studentbudget\util\HibernateTransactionManager$TransactionCallback.class
 com\studentbudget\controller\MainController$9.class
+com\studentbudget\controller\TransactionDialogController$3.class
 com\studentbudget\dao\impl\RestApiTransactionDao$3.class
 com\studentbudget\model\User.class
 com\studentbudget\dao\impl\RestApiTransactionDao$6.class
@@ -33,13 +36,16 @@ com\studentbudget\dao\TransactionDao.class
 com\studentbudget\service\CategoryService.class
 com\studentbudget\controller\MainController$2.class
 com\studentbudget\controller\MainController$5.class
+com\studentbudget\service\UserService.class
 com\studentbudget\controller\TransactionDialogController$1.class
 com\studentbudget\service\TransactionService.class
 com\studentbudget\service\impl\AuthServiceImpl.class
 com\studentbudget\config\AppConfig.class
 com\studentbudget\dao\impl\JsonFileTransactionDao.class
 com\studentbudget\dao\impl\HibernateCategoryDao.class
+com\studentbudget\controller\TransactionDialogController$4.class
 com\studentbudget\controller\MainController$8.class
+com\studentbudget\controller\TransactionDialogController$5.class
 com\studentbudget\dao\impl\RestApiTransactionDao$2.class
 com\studentbudget\dao\impl\RestApiTransactionDao$5.class
 com\studentbudget\controller\MainController$1.class

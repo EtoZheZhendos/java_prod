@@ -34,6 +34,7 @@ public class MainController implements Initializable {
     private final TransactionService transactionService;
     private final CategoryService categoryService;
     private final AuthService authService;
+    private final UserService userService;
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
     @FXML private Label totalIncomeLabel;
@@ -82,10 +83,11 @@ public class MainController implements Initializable {
     private static final String LIGHT_THEME = "/css/light-theme.css";
     private static final String DARK_THEME = "/css/dark-theme.css";
 
-    public MainController(TransactionService transactionService, CategoryService categoryService, AuthService authService) {
+    public MainController(TransactionService transactionService, CategoryService categoryService, AuthService authService, UserService userService) {
         this.transactionService = transactionService;
         this.categoryService = categoryService;
         this.authService = authService;
+        this.userService = userService;
     }
 
     @Override
@@ -674,7 +676,7 @@ public class MainController implements Initializable {
             authService.logout();
             
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/login-view.fxml"));
-            LoginController controller = new LoginController(authService, transactionService, categoryService);
+            LoginController controller = new LoginController(authService, userService, transactionService, categoryService);
             loader.setController(controller);
             
             Scene scene = new Scene(loader.load());

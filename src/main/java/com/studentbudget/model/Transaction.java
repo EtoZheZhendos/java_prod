@@ -120,8 +120,8 @@ public class Transaction {
                 "id=" + id +
                 ", amount=" + amount +
                 ", type=" + type +
-                ", category=" + category.getName() +
-                ", user=" + user.getUsername() +
+                ", category=" + (category != null ? category.getName() : "null") +
+                ", user=" + (user != null ? user.getUsername() : "null") +
                 ", date=" + date +
                 ", description='" + description + '\'' +
                 ", status=" + status +

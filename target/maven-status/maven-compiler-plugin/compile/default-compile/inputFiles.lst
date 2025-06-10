@@ -10,6 +10,7 @@ C:\JS\java_prod\src\main\java\com\studentbudget\service\impl\SettingsServiceImpl
 C:\JS\java_prod\src\main\java\com\studentbudget\service\TransactionService.java
 C:\JS\java_prod\src\main\java\com\studentbudget\model\TransactionStatus.java
 C:\JS\java_prod\src\main\java\com\studentbudget\dao\TransactionDao.java
+C:\JS\java_prod\src\main\java\com\studentbudget\service\UserService.java
 C:\JS\java_prod\src\main\java\com\studentbudget\dao\UserDao.java
 C:\JS\java_prod\src\main\java\com\studentbudget\dao\GenericDao.java
 C:\JS\java_prod\src\main\java\com\studentbudget\controller\LoginController.java
@@ -19,6 +20,7 @@ C:\JS\java_prod\src\main\java\com\studentbudget\model\User.java
 C:\JS\java_prod\src\main\java\com\studentbudget\service\AuthService.java
 C:\JS\java_prod\src\main\java\com\studentbudget\service\impl\TransactionServiceImpl.java
 C:\JS\java_prod\src\main\java\com\studentbudget\util\PasswordUtils.java
+C:\JS\java_prod\src\main\java\com\studentbudget\service\impl\UserServiceImpl.java
 C:\JS\java_prod\src\main\java\com\studentbudget\dao\impl\HibernateTransactionDao.java
 C:\JS\java_prod\src\main\java\com\studentbudget\model\Category.java
 C:\JS\java_prod\src\main\java\com\studentbudget\dao\impl\HibernateCategoryDao.java
