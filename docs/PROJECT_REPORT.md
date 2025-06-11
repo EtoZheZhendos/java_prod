@@ -28,11 +28,6 @@
 
 ## Технический стек
 
-### Frontend
-- HTML/CSS
-- JavaScript
-- Bootstrap для стилизации
-
 ### Backend
 - Java (базовая версия)
 - Встроенная база данных
