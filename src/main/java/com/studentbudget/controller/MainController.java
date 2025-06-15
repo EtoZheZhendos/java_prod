@@ -49,6 +49,7 @@ public class MainController implements Initializable {
     @FXML private TableColumn<Transaction, String> descriptionColumn;
     @FXML private TableColumn<Transaction, TransactionStatus> statusColumn;
     @FXML private TableColumn<Transaction, User> userColumn;
+    @FXML private TableColumn<Transaction, Void> actionsColumn;
     
     @FXML private PieChart expenseChart;
     
@@ -118,6 +119,29 @@ public class MainController implements Initializable {
         }
         
         updateDashboard();
+        
+        // Initialize actions column
+        actionsColumn.setCellFactory(col -> new TableCell<>() {
+            private final Button deleteButton = new Button("Удалить");
+            
+            {
+                deleteButton.getStyleClass().add("action-button");
+                deleteButton.setOnAction(event -> {
+                    Transaction transaction = getTableView().getItems().get(getIndex());
+                    handleDeleteTransaction(transaction);
+                });
+            }
+            
+            @Override
+            protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty) {
+                    setGraphic(null);
+                } else {
+                    setGraphic(deleteButton);
+                }
+            }
+        });
     }
 
     private void initializeTableColumns() {
@@ -502,7 +526,7 @@ public class MainController implements Initializable {
 
     private void handleDeleteTransaction(Transaction transaction) {
         Alert alert = new Alert(Alert.AlertType.CONFIRMATION,
-                "Are you sure you want to delete this transaction?",
+                "Вы уверены, что хотите удалить эту транзакцию?",
                 ButtonType.YES, ButtonType.NO);
         alert.showAndWait().ifPresent(response -> {
             if (response == ButtonType.YES) {

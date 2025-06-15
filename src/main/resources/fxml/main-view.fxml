@@ -81,6 +81,7 @@
                         <TableColumn fx:id="descriptionColumn" text="Описание" minWidth="200"/>
                         <TableColumn fx:id="statusColumn" text="Статус" minWidth="100"/>
                         <TableColumn fx:id="userColumn" text="Пользователь" minWidth="150"/>
+                        <TableColumn fx:id="actionsColumn" text="Действия" minWidth="100"/>
                     </columns>
                 </TableView>
             </VBox>
